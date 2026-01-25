@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>ESP32 LED Control</title>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <style>
+    body {
+      font-family: Arial;
+      text-align: center;
+      margin-top: 50px;
+    }
+    button {
+      font-size: 24px;
+      padding: 15px 30px;
+      margin: 10px;
+      cursor: pointer;
+      border-radius: 8px;
+      border: none;
+      color: white;
+      background-color: #4CAF50;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <h1>ESP32 LED Control</h1>
+  <button onclick="sendMessage('ON')">LED ON</button>
+  <button onclick="sendMessage('OFF')">LED OFF</button>
+
+  <script>
+    // ---------- HiveMQ Credentials ----------
+    const broker = "wss://21d29e3f1c8b4623a92f309b0fbe53c4.s1.eu.hivemq.cloud:8884/mqtt";
+    const username = "espuser";
+    const password = "Esp1234@@";
+    const topic = "esp32/led";
+
+    const client = mqtt.connect(broker, {
+      username: username,
+      password: password
+    });
+
+    client.on('connect', () => {
+      console.log("Connected to HiveMQ broker ✅");
+    });
+
+    client.on('error', (err) => {
+      console.error("MQTT connection error:", err);
+    });
+
+    function sendMessage(msg) {
+      client.publish(topic, msg);
+      console.log("Sent:", msg);
+    }
+  </script>
+</body>
+</html>
