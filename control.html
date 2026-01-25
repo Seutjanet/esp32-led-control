@@ -11,34 +11,25 @@
   <button onclick="sendOn()" style="padding:15px 30px; font-size:18px;">LED ON</button>
   <button onclick="sendOff()" style="padding:15px 30px; font-size:18px;">LED OFF</button>
 
-  <h3 id="status"></h3>
-
 <script>
   const client = mqtt.connect("wss://21d29e3f1c8b4623a92f309b0fbe53c4.s1.eu.hivemq.cloud:8884/mqtt", {
     username: "espuser",
     password: "Esp1234@@"
   });
 
-  client.on("connect", function () {
-    document.getElementById("status").innerText = "Connected to MQTT";
-  });
-
   function speak(text) {
     const speech = new SpeechSynthesisUtterance(text);
-    speech.lang = "de-DE"; 
-    speech.rate = 1;
+    speech.lang = "de-DE";
     window.speechSynthesis.speak(speech);
   }
 
   function sendOn() {
     client.publish("esp32/led", "ON");
-    document.getElementById("status").innerText = "LED ON sent";
     speak("Danke, chaapte");
   }
 
   function sendOff() {
     client.publish("esp32/led", "OFF");
-    document.getElementById("status").innerText = "LED OFF sent";
     speak("Danke, daddy");
   }
 </script>
