@@ -1,70 +1,103 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Smart Home Light Control</title>
+  <title>Smart Home Control</title>
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <style>
     body {
       margin: 0;
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
       font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
       color: white;
       text-align: center;
     }
 
-    .card {
-      background: rgba(255,255,255,0.08);
-      padding: 40px;
-      border-radius: 20px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-      backdrop-filter: blur(10px);
-      width: 300px;
-    }
-
-    h2 {
-      margin-bottom: 30px;
+    h1 {
+      margin-top: 20px;
       font-weight: normal;
     }
 
-    .light-btn {
-      width: 140px;
-      height: 140px;
-      border-radius: 50%;
-      border: none;
-      font-size: 40px;
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 25px;
+      padding: 30px;
+      max-width: 800px;
+      margin: auto;
+    }
+
+    .device {
+      padding: 25px;
+      border-radius: 20px;
+      background: #ff1744;
       cursor: pointer;
       transition: 0.3s;
-      box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
     }
 
-    .on {
+    .device.on {
       background: #00e676;
-      color: black;
     }
 
-    .off {
-      background: #ff1744;
-      color: white;
+    .icon {
+      font-size: 50px;
+      margin-bottom: 10px;
+      transition: 0.3s;
     }
 
-    .status {
-      margin-top: 20px;
-      font-size: 14px;
-      opacity: 0.8;
+    /* Bulb glow */
+    .bulb-on {
+      text-shadow: 0 0 20px yellow, 0 0 40px orange;
     }
+
+    /* Fan spin animation */
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(1080deg); }
+    }
+
+    .fan-spin {
+      animation: spin 2s ease-in-out;
+    }
+
+    /* TV screen */
+    .tv-screen {
+      width: 50px;
+      height: 35px;
+      margin: auto;
+      background: black;
+      border-radius: 5px;
+      transition: 0.3s;
+    }
+
+    .tv-on {
+      background: white;
+    }
+
   </style>
 </head>
 <body>
 
-  <div class="card">
-    <h2>Smart Light Control</h2>
-    <button id="lightButton" class="light-btn off">💡</button>
-    <div class="status" id="status">Disconnected</div>
+<h1>🏠 Smart Home Dashboard</h1>
+
+<div class="grid">
+
+  <div class="device" id="light">
+    <div class="icon" id="bulb">💡</div>
+    Light
   </div>
+
+  <div class="device" id="fan">
+    <div class="icon" id="fanIcon">🌀</div>
+    Fan
+  </div>
+
+  <div class="device" id="tv">
+    <div class="tv-screen" id="tvScreen"></div>
+    TV
+  </div>
+
+</div>
 
 <script>
   const client = mqtt.connect("wss://21d29e3f1c8b4623a92f309b0fbe53c4.s1.eu.hivemq.cloud:8884/mqtt", {
@@ -72,29 +105,34 @@
     password: "Esp1234@@"
   });
 
-  const button = document.getElementById("lightButton");
-  const statusText = document.getElementById("status");
-  let isOn = false;
+  let states = { light:false, fan:false, tv:false };
 
-  client.on("connect", function () {
-    statusText.innerText = "Connected to Smart Home";
-  });
+  function toggleDevice(name) {
+    states[name] = !states[name];
+    const tile = document.getElementById(name);
+    tile.classList.toggle("on");
 
-  button.addEventListener("click", function () {
-    if (!isOn) {
-      client.publish("esp32/led", "ON");
-      button.classList.remove("off");
-      button.classList.add("on");
-      statusText.innerText = "Light is ON";
-      isOn = true;
-    } else {
-      client.publish("esp32/led", "OFF");
-      button.classList.remove("on");
-      button.classList.add("off");
-      statusText.innerText = "Light is OFF";
-      isOn = false;
+    if(name === "light") {
+      document.getElementById("bulb").classList.toggle("bulb-on");
+      client.publish("esp32/led", states[name] ? "ON" : "OFF");
     }
-  });
+
+    if(name === "fan") {
+      const fanIcon = document.getElementById("fanIcon");
+      if(states[name]) {
+        fanIcon.classList.add("fan-spin");
+        setTimeout(()=>fanIcon.classList.remove("fan-spin"), 2000);
+      }
+    }
+
+    if(name === "tv") {
+      document.getElementById("tvScreen").classList.toggle("tv-on");
+    }
+  }
+
+  document.getElementById("light").onclick = ()=>toggleDevice("light");
+  document.getElementById("fan").onclick = ()=>toggleDevice("fan");
+  document.getElementById("tv").onclick = ()=>toggleDevice("tv");
 </script>
 
 </body>
