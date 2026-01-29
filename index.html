@@ -63,6 +63,7 @@
       cursor:pointer;
       transition:.3s;
       box-shadow:0 0 15px rgba(0,0,0,0.5);
+      position:relative;
     }
 
     .device.on {
@@ -94,6 +95,16 @@
       margin-top:8px;
       opacity:.8;
     }
+
+    .fan-speed button {
+      margin: 2px;
+      padding: 3px 6px;
+      border-radius: 5px;
+      border:none;
+      cursor:pointer;
+      background:#555;
+      color:white;
+    }
   </style>
 </head>
 
@@ -108,31 +119,42 @@
 
   <div class="grid">
 
-    <div class="device" id="light" onclick="sendCmd('light')">
+    <!-- Light -->
+    <div class="device" id="light" onclick="toggleDevice('light')">
       <div class="icon">💡</div>
       Light
       <div class="ack" id="ack_light">Waiting...</div>
     </div>
 
-    <div class="device" id="fan" onclick="sendCmd('fan')">
+    <!-- Fan -->
+    <div class="device" id="fan" onclick="toggleFan()">
       <div class="icon" id="fanIcon">🌀</div>
       Fan
+      <div class="fan-speed" id="fanSpeed" style="display:none; margin-top:8px;">
+        Speed: 
+        <button onclick="setFanSpeed(1);event.stopPropagation();">1</button>
+        <button onclick="setFanSpeed(2);event.stopPropagation();">2</button>
+        <button onclick="setFanSpeed(3);event.stopPropagation();">3</button>
+      </div>
       <div class="ack" id="ack_fan">Waiting...</div>
     </div>
 
-    <div class="device" id="tvBox" onclick="sendCmd('tv')">
+    <!-- TV -->
+    <div class="device" id="tvBox" onclick="toggleDevice('tv')">
       <div class="tv" id="tv"></div>
       TV
       <div class="ack" id="ack_tv">Waiting...</div>
     </div>
 
-    <div class="device" id="pump" onclick="sendCmd('pump')">
+    <!-- Pump -->
+    <div class="device" id="pump" onclick="toggleDevice('pump')">
       <div class="icon">🚰</div>
       Pump
       <div class="ack" id="ack_pump">Waiting...</div>
     </div>
 
-    <div class="device" id="gate" onclick="sendCmd('gate')">
+    <!-- Gate -->
+    <div class="device" id="gate" onclick="toggleDevice('gate')">
       <div class="icon">🚪</div>
       Gate
       <div class="ack" id="ack_gate">Waiting...</div>
@@ -142,13 +164,16 @@
 </div>
 
 <script>
-const broker = "wss://21d29e3f1c8b4623a92f309b0fbe53c4.s1.eu.hivemq.cloud:8884/mqtt";
+const broker = "wss://YOUR_HIVEMQ_URL:8884/mqtt";
 const options = {
-  username: "espuser",
-  password: "Esp1234@@"
+  username: "YOUR_MQTT_USERNAME",
+  password: "YOUR_MQTT_PASSWORD"
 };
 
 const client = mqtt.connect(broker, options);
+
+// States
+let deviceStates = {light:false, fan:false, fanSpeed:1, tv:false, pump:false, gate:false};
 
 client.on("connect", () => {
   console.log("Connected to broker");
@@ -159,41 +184,67 @@ client.on("message", (topic, message) => {
   const msg = message.toString();
   console.log(msg);
 
-  if(msg === "online") {
+  if(msg === "online"){
     document.getElementById("dot").style.background="lime";
     document.getElementById("espStatus").innerText="Online";
     return;
   }
 
-  const [device,state] = msg.split(":");
+  const parts = msg.split(":");
+  const device = parts[0];
+  const state = parts[1];
 
-  const el = document.getElementById(device === "tv" ? "tvBox" : device);
+  const el = device==="tv" ? document.getElementById("tvBox") : document.getElementById(device);
   if(!el) return;
 
-  if(state === "ON") {
+  if(state==="ON"){
     el.classList.add("on");
     document.getElementById("ack_"+device).innerText="Done ✅";
 
     if(device==="fan"){
-      fanIcon.classList.add("spin");
-      setTimeout(()=>fanIcon.classList.remove("spin"),1800);
+      document.getElementById("fanIcon").classList.add("spin");
+      setTimeout(()=>document.getElementById("fanIcon").classList.remove("spin"),1800);
     }
 
-    if(device==="tv") tv.classList.add("on");
+    if(device==="tv") document.getElementById("tv").classList.add("on");
 
-  } else {
+  }else{
     el.classList.remove("on");
     document.getElementById("ack_"+device).innerText="Done ✅";
-    if(device==="tv") tv.classList.remove("on");
+    if(device==="tv") document.getElementById("tv").classList.remove("on");
   }
 });
 
-function sendCmd(device){
-  const el = document.getElementById(device === "tv" ? "tvBox" : device);
+function toggleDevice(device){
+  const el = device==="tv" ? document.getElementById("tvBox") : document.getElementById(device);
   const newState = el.classList.contains("on") ? "OFF" : "ON";
-
   client.publish("home/control", device+":"+newState);
   document.getElementById("ack_"+device).innerText="Sending...";
+}
+
+// --- FAN FUNCTIONS ---
+function toggleFan(){
+  deviceStates.fan = !deviceStates.fan;
+  const el = document.getElementById("fan");
+  el.classList.toggle("on", deviceStates.fan);
+
+  const speedMenu = document.getElementById("fanSpeed");
+  speedMenu.style.display = deviceStates.fan ? "block" : "none";
+
+  sendFanCommand();
+}
+
+function setFanSpeed(speed){
+  deviceStates.fanSpeed = speed;
+  sendFanCommand();
+  document.getElementById("fanSpeed").innerText = "Speed: " + speed;
+}
+
+function sendFanCommand(){
+  const state = deviceStates.fan ? "ON" : "OFF";
+  const speed = deviceStates.fanSpeed;
+  client.publish("home/control", `fan:${state}:${speed}`);
+  document.getElementById("ack_fan").innerText="Sending...";
 }
 </script>
 </body>
