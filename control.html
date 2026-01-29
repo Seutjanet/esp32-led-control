@@ -1,15 +1,70 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>ESP32 LED Control</title>
+  <title>Smart Home Light Control</title>
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      font-family: Arial, sans-serif;
+      color: white;
+      text-align: center;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.08);
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      backdrop-filter: blur(10px);
+      width: 300px;
+    }
+
+    h2 {
+      margin-bottom: 30px;
+      font-weight: normal;
+    }
+
+    .light-btn {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      border: none;
+      font-size: 40px;
+      cursor: pointer;
+      transition: 0.3s;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+    }
+
+    .on {
+      background: #00e676;
+      color: black;
+    }
+
+    .off {
+      background: #ff1744;
+      color: white;
+    }
+
+    .status {
+      margin-top: 20px;
+      font-size: 14px;
+      opacity: 0.8;
+    }
+  </style>
 </head>
-<body style="text-align:center; font-family:Arial; margin-top:50px;">
+<body>
 
-  <h2>ESP32 LED Control</h2>
-
-  <button onclick="sendOn()" style="padding:15px 30px; font-size:18px;">LED ON</button>
-  <button onclick="sendOff()" style="padding:15px 30px; font-size:18px;">LED OFF</button>
+  <div class="card">
+    <h2>Smart Light Control</h2>
+    <button id="lightButton" class="light-btn off">💡</button>
+    <div class="status" id="status">Disconnected</div>
+  </div>
 
 <script>
   const client = mqtt.connect("wss://21d29e3f1c8b4623a92f309b0fbe53c4.s1.eu.hivemq.cloud:8884/mqtt", {
@@ -17,21 +72,29 @@
     password: "Esp1234@@"
   });
 
-  function speak(text) {
-    const speech = new SpeechSynthesisUtterance(text);
-    speech.lang = "de-DE";
-    window.speechSynthesis.speak(speech);
-  }
+  const button = document.getElementById("lightButton");
+  const statusText = document.getElementById("status");
+  let isOn = false;
 
-  function sendOn() {
-    client.publish("esp32/led", "ON");
-    speak("Danke, chaapte");
-  }
+  client.on("connect", function () {
+    statusText.innerText = "Connected to Smart Home";
+  });
 
-  function sendOff() {
-    client.publish("esp32/led", "OFF");
-    speak("Danke, daddy");
-  }
+  button.addEventListener("click", function () {
+    if (!isOn) {
+      client.publish("esp32/led", "ON");
+      button.classList.remove("off");
+      button.classList.add("on");
+      statusText.innerText = "Light is ON";
+      isOn = true;
+    } else {
+      client.publish("esp32/led", "OFF");
+      button.classList.remove("on");
+      button.classList.add("off");
+      statusText.innerText = "Light is OFF";
+      isOn = false;
+    }
+  });
 </script>
 
 </body>
