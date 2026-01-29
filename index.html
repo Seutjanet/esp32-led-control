@@ -2,166 +2,199 @@
 <html>
 <head>
   <title>Smart Home Control</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
   <style>
     body {
-      margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+      margin:0;
+      font-family:'Segoe UI',sans-serif;
+      background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      height:100vh;
     }
 
     .panel {
-      background: rgba(255,255,255,0.08);
-      backdrop-filter: blur(15px);
-      border-radius: 25px;
-      padding: 30px;
-      width: 95%;
-      max-width: 950px;
-      box-shadow: 0 0 40px rgba(0,0,0,0.4);
+      background:rgba(255,255,255,0.08);
+      backdrop-filter:blur(15px);
+      border-radius:25px;
+      padding:25px;
+      width:95%;
+      max-width:950px;
+      box-shadow:0 0 40px rgba(0,0,0,0.4);
     }
 
     h1 {
-      text-align: center;
-      color: white;
-      margin-bottom: 25px;
-      letter-spacing: 2px;
+      text-align:center;
+      color:white;
+      margin-bottom:15px;
+    }
+
+    .statusbar {
+      text-align:center;
+      margin-bottom:20px;
+      color:white;
+      font-size:14px;
+    }
+
+    .dot {
+      height:10px;
+      width:10px;
+      border-radius:50%;
+      display:inline-block;
+      margin-right:5px;
+      background:red;
     }
 
     .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 20px;
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+      gap:20px;
     }
 
     .device {
-      background: #3b0000;
-      border-radius: 20px;
-      padding: 20px;
-      text-align: center;
-      color: white;
-      cursor: pointer;
-      transition: 0.3s;
-      box-shadow: 0 0 15px rgba(0,0,0,0.5);
+      background:#3b0000;
+      border-radius:20px;
+      padding:20px;
+      text-align:center;
+      color:white;
+      cursor:pointer;
+      transition:.3s;
+      box-shadow:0 0 15px rgba(0,0,0,0.5);
     }
 
     .device.on {
-      background: #003b00;
-      box-shadow: 0 0 20px #00ff88;
+      background:#003b00;
+      box-shadow:0 0 20px #00ff88;
     }
 
-    .icon {
-      font-size: 60px;
-      margin-bottom: 10px;
-      display: inline-block;
-    }
-
-    .spin {
-      animation: spin 0.6s linear 3;
-    }
-
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
+    .icon { font-size:55px; margin-bottom:10px; display:inline-block; }
 
     .tv {
-      width: 70px;
-      height: 45px;
-      background: black;
-      border-radius: 6px;
-      margin: auto;
-      border: 4px solid #555;
+      width:70px; height:45px;
+      background:black;
+      border-radius:6px;
+      margin:auto;
+      border:4px solid #555;
     }
 
-    .tv.on {
-      background: white;
-      box-shadow: 0 0 15px white;
+    .tv.on { background:white; box-shadow:0 0 15px white; }
+
+    .spin { animation:spin .6s linear 3; }
+
+    @keyframes spin {
+      from { transform:rotate(0deg); }
+      to { transform:rotate(360deg); }
     }
 
-    .pump { font-size: 55px; }
-    .gate { font-size: 55px; }
-
-    p { margin: 5px 0 0; font-size: 16px; }
+    .ack {
+      font-size:12px;
+      margin-top:8px;
+      opacity:.8;
+    }
   </style>
 </head>
-<body>
 
+<body>
 <div class="panel">
   <h1>🏠 Smart Home Control</h1>
 
+  <div class="statusbar">
+    <span id="dot" class="dot"></span>
+    ESP32 Status: <span id="espStatus">Offline</span>
+  </div>
+
   <div class="grid">
 
-    <div class="device" id="light" onclick="toggle(this)">
+    <div class="device" id="light" onclick="sendCmd('light')">
       <div class="icon">💡</div>
-      <p>Light Bulb</p>
+      Light
+      <div class="ack" id="ack_light">Waiting...</div>
     </div>
 
-    <div class="device" id="fanBox" onclick="toggleFan(this)">
-      <div class="icon" id="fan">🌀</div>
-      <p>Fan</p>
+    <div class="device" id="fan" onclick="sendCmd('fan')">
+      <div class="icon" id="fanIcon">🌀</div>
+      Fan
+      <div class="ack" id="ack_fan">Waiting...</div>
     </div>
 
-    <div class="device" id="tvBox" onclick="toggleTV(this)">
+    <div class="device" id="tvBox" onclick="sendCmd('tv')">
       <div class="tv" id="tv"></div>
-      <p>TV</p>
+      TV
+      <div class="ack" id="ack_tv">Waiting...</div>
     </div>
 
-    <div class="device" id="pump" onclick="toggle(this)">
-      <div class="icon pump">🚰</div>
-      <p>Water Pump</p>
+    <div class="device" id="pump" onclick="sendCmd('pump')">
+      <div class="icon">🚰</div>
+      Pump
+      <div class="ack" id="ack_pump">Waiting...</div>
     </div>
 
-    <div class="device" id="gate" onclick="toggle(this)">
-      <div class="icon gate">🚪</div>
-      <p>Sliding Gate</p>
+    <div class="device" id="gate" onclick="sendCmd('gate')">
+      <div class="icon">🚪</div>
+      Gate
+      <div class="ack" id="ack_gate">Waiting...</div>
     </div>
 
   </div>
 </div>
 
 <script>
-  const devices = ["light","fanBox","tvBox","pump","gate"];
+const broker = "wss://21d29e3f1c8b4623a92f309b0fbe53c4.s1.eu.hivemq.cloud:8884/mqtt";
+const options = {
+  username: "espuser",
+  password: "Esp1234@@"
+};
 
-  function saveState(id, state) {
-    localStorage.setItem(id, state);
+const client = mqtt.connect(broker, options);
+
+client.on("connect", () => {
+  console.log("Connected to broker");
+  client.subscribe("home/status");
+});
+
+client.on("message", (topic, message) => {
+  const msg = message.toString();
+  console.log(msg);
+
+  if(msg === "online") {
+    document.getElementById("dot").style.background="lime";
+    document.getElementById("espStatus").innerText="Online";
+    return;
   }
 
-  function loadStates() {
-    devices.forEach(id => {
-      const saved = localStorage.getItem(id);
-      if (saved === "on") {
-        document.getElementById(id).classList.add("on");
-        if(id === "tvBox") document.getElementById("tv").classList.add("on");
-      }
-    });
+  const [device,state] = msg.split(":");
+
+  const el = document.getElementById(device === "tv" ? "tvBox" : device);
+  if(!el) return;
+
+  if(state === "ON") {
+    el.classList.add("on");
+    document.getElementById("ack_"+device).innerText="Done ✅";
+
+    if(device==="fan"){
+      fanIcon.classList.add("spin");
+      setTimeout(()=>fanIcon.classList.remove("spin"),1800);
+    }
+
+    if(device==="tv") tv.classList.add("on");
+
+  } else {
+    el.classList.remove("on");
+    document.getElementById("ack_"+device).innerText="Done ✅";
+    if(device==="tv") tv.classList.remove("on");
   }
+});
 
-  function toggle(el) {
-    el.classList.toggle("on");
-    saveState(el.id, el.classList.contains("on") ? "on" : "off");
-  }
+function sendCmd(device){
+  const el = document.getElementById(device === "tv" ? "tvBox" : device);
+  const newState = el.classList.contains("on") ? "OFF" : "ON";
 
-  function toggleFan(el) {
-    el.classList.toggle("on");
-    saveState(el.id, el.classList.contains("on") ? "on" : "off");
-
-    const fan = document.getElementById("fan");
-    fan.classList.add("spin");
-    setTimeout(() => fan.classList.remove("spin"), 1800);
-  }
-
-  function toggleTV(el) {
-    el.classList.toggle("on");
-    document.getElementById("tv").classList.toggle("on");
-    saveState(el.id, el.classList.contains("on") ? "on" : "off");
-  }
-
-  window.onload = loadStates;
+  client.publish("home/control", device+":"+newState);
+  document.getElementById("ack_"+device).innerText="Sending...";
+}
 </script>
-
 </body>
 </html>
