@@ -2,189 +2,165 @@
 <html>
 <head>
   <title>Smart Home Control</title>
-  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
       margin: 0;
       font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #141e30, #243b55);
-      color: white;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .panel {
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(15px);
+      border-radius: 25px;
+      padding: 30px;
+      width: 95%;
+      max-width: 950px;
+      box-shadow: 0 0 40px rgba(0,0,0,0.4);
     }
 
     h1 {
       text-align: center;
-      padding: 20px 0;
-      font-weight: 400;
-      letter-spacing: 1px;
+      color: white;
+      margin-bottom: 25px;
+      letter-spacing: 2px;
     }
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-      gap: 25px;
-      padding: 30px;
-      max-width: 1000px;
-      margin: auto;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 20px;
     }
 
     .device {
-      background: rgba(255,255,255,0.08);
-      backdrop-filter: blur(12px);
+      background: #3b0000;
       border-radius: 20px;
-      padding: 25px;
+      padding: 20px;
       text-align: center;
+      color: white;
       cursor: pointer;
       transition: 0.3s;
-      box-shadow: 0 15px 30px rgba(0,0,0,0.4);
-      border: 2px solid transparent;
+      box-shadow: 0 0 15px rgba(0,0,0,0.5);
     }
 
     .device.on {
-      border-color: #00e676;
-      background: rgba(0,230,118,0.15);
+      background: #003b00;
+      box-shadow: 0 0 20px #00ff88;
     }
 
     .icon {
-      font-size: 48px;
+      font-size: 60px;
       margin-bottom: 10px;
-      transition: 0.3s;
+      display: inline-block;
     }
 
-    /* Light glow */
-    .bulb-on {
-      text-shadow: 0 0 25px #ffd54f, 0 0 40px #ffb300;
+    .spin {
+      animation: spin 0.6s linear 3;
     }
 
-    /* Fan */
     @keyframes spin {
       from { transform: rotate(0deg); }
-      to { transform: rotate(1080deg); }
-    }
-    .fan-spin {
-      animation: spin 2s ease-in-out;
+      to { transform: rotate(360deg); }
     }
 
-    /* TV */
     .tv {
-      width: 60px;
-      height: 40px;
-      margin: auto;
+      width: 70px;
+      height: 45px;
       background: black;
       border-radius: 6px;
-      border: 3px solid #555;
-      transition: 0.3s;
-    }
-    .tv-on {
-      background: #e0f7fa;
-      box-shadow: 0 0 20px #81d4fa;
+      margin: auto;
+      border: 4px solid #555;
     }
 
-    /* Gate motor animation */
-    @keyframes slideGate {
-      0% { transform: translateX(0); }
-      50% { transform: translateX(10px); }
-      100% { transform: translateX(0); }
-    }
-    .gate-move {
-      animation: slideGate 1s ease-in-out 2;
+    .tv.on {
+      background: white;
+      box-shadow: 0 0 15px white;
     }
 
-    /* Pump animation */
-    @keyframes pumpPulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.15); }
-      100% { transform: scale(1); }
-    }
-    .pump-on {
-      animation: pumpPulse 1s ease-in-out infinite;
-    }
+    .pump { font-size: 55px; }
+    .gate { font-size: 55px; }
 
-    .label {
-      margin-top: 10px;
-      font-size: 15px;
-      opacity: 0.85;
-    }
+    p { margin: 5px 0 0; font-size: 16px; }
   </style>
 </head>
 <body>
 
-<h1>🏠 Smart Home Control</h1>
+<div class="panel">
+  <h1>🏠 Smart Home Control</h1>
 
-<div class="grid">
+  <div class="grid">
 
-  <div class="device" id="light">
-    <div class="icon" id="bulb">💡</div>
-    <div class="label">Light</div>
+    <div class="device" id="light" onclick="toggle(this)">
+      <div class="icon">💡</div>
+      <p>Light Bulb</p>
+    </div>
+
+    <div class="device" id="fanBox" onclick="toggleFan(this)">
+      <div class="icon" id="fan">🌀</div>
+      <p>Fan</p>
+    </div>
+
+    <div class="device" id="tvBox" onclick="toggleTV(this)">
+      <div class="tv" id="tv"></div>
+      <p>TV</p>
+    </div>
+
+    <div class="device" id="pump" onclick="toggle(this)">
+      <div class="icon pump">🚰</div>
+      <p>Water Pump</p>
+    </div>
+
+    <div class="device" id="gate" onclick="toggle(this)">
+      <div class="icon gate">🚪</div>
+      <p>Sliding Gate</p>
+    </div>
+
   </div>
-
-  <div class="device" id="fan">
-    <div class="icon" id="fanIcon">🪭</div>
-    <div class="label">Fan</div>
-  </div>
-
-  <div class="device" id="tv">
-    <div class="tv" id="tvScreen"></div>
-    <div class="label">TV</div>
-  </div>
-
-  <div class="device" id="gate">
-    <div class="icon" id="gateIcon">🚪</div>
-    <div class="label">Gate Motor</div>
-  </div>
-
-  <div class="device" id="pump">
-    <div class="icon" id="pumpIcon">💧</div>
-    <div class="label">Water Pump</div>
-  </div>
-
 </div>
 
 <script>
-  const client = mqtt.connect("wss://21d29e3f1c8b4623a92f309b0fbe53c4.s1.eu.hivemq.cloud:8884/mqtt", {
-    username: "espuser",
-    password: "Esp1234@@"
-  });
+  const devices = ["light","fanBox","tvBox","pump","gate"];
 
-  let states = { light:false, fan:false, tv:false, gate:false, pump:false };
-
-  function toggleDevice(name) {
-    states[name] = !states[name];
-    const tile = document.getElementById(name);
-    tile.classList.toggle("on");
-
-    if(name === "light") {
-      document.getElementById("bulb").classList.toggle("bulb-on");
-      client.publish("esp32/led", states[name] ? "ON" : "OFF");
-    }
-
-    if(name === "fan") {
-      const fanIcon = document.getElementById("fanIcon");
-      if(states[name]) {
-        fanIcon.classList.add("fan-spin");
-        setTimeout(()=>fanIcon.classList.remove("fan-spin"), 2000);
-      }
-    }
-
-    if(name === "tv") {
-      document.getElementById("tvScreen").classList.toggle("tv-on");
-    }
-
-    if(name === "gate") {
-      const g = document.getElementById("gateIcon");
-      if(states[name]) g.classList.add("gate-move");
-      else g.classList.remove("gate-move");
-    }
-
-    if(name === "pump") {
-      document.getElementById("pumpIcon").classList.toggle("pump-on");
-    }
+  function saveState(id, state) {
+    localStorage.setItem(id, state);
   }
 
-  document.getElementById("light").onclick = ()=>toggleDevice("light");
-  document.getElementById("fan").onclick = ()=>toggleDevice("fan");
-  document.getElementById("tv").onclick = ()=>toggleDevice("tv");
-  document.getElementById("gate").onclick = ()=>toggleDevice("gate");
-  document.getElementById("pump").onclick = ()=>toggleDevice("pump");
+  function loadStates() {
+    devices.forEach(id => {
+      const saved = localStorage.getItem(id);
+      if (saved === "on") {
+        document.getElementById(id).classList.add("on");
+        if(id === "tvBox") document.getElementById("tv").classList.add("on");
+      }
+    });
+  }
+
+  function toggle(el) {
+    el.classList.toggle("on");
+    saveState(el.id, el.classList.contains("on") ? "on" : "off");
+  }
+
+  function toggleFan(el) {
+    el.classList.toggle("on");
+    saveState(el.id, el.classList.contains("on") ? "on" : "off");
+
+    const fan = document.getElementById("fan");
+    fan.classList.add("spin");
+    setTimeout(() => fan.classList.remove("spin"), 1800);
+  }
+
+  function toggleTV(el) {
+    el.classList.toggle("on");
+    document.getElementById("tv").classList.toggle("on");
+    saveState(el.id, el.classList.contains("on") ? "on" : "off");
+  }
+
+  window.onload = loadStates;
 </script>
 
 </body>
