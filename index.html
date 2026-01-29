@@ -6,95 +6,135 @@
   <style>
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #141e30, #243b55);
       color: white;
-      text-align: center;
     }
 
     h1 {
-      margin-top: 20px;
-      font-weight: normal;
+      text-align: center;
+      padding: 20px 0;
+      font-weight: 400;
+      letter-spacing: 1px;
     }
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
       gap: 25px;
       padding: 30px;
-      max-width: 800px;
+      max-width: 1000px;
       margin: auto;
     }
 
     .device {
-      padding: 25px;
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(12px);
       border-radius: 20px;
-      background: #ff1744;
+      padding: 25px;
+      text-align: center;
       cursor: pointer;
       transition: 0.3s;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+      box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+      border: 2px solid transparent;
     }
 
     .device.on {
-      background: #00e676;
+      border-color: #00e676;
+      background: rgba(0,230,118,0.15);
     }
 
     .icon {
-      font-size: 50px;
+      font-size: 48px;
       margin-bottom: 10px;
       transition: 0.3s;
     }
 
-    /* Bulb glow */
+    /* Light glow */
     .bulb-on {
-      text-shadow: 0 0 20px yellow, 0 0 40px orange;
+      text-shadow: 0 0 25px #ffd54f, 0 0 40px #ffb300;
     }
 
-    /* Fan spin animation */
+    /* Fan */
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(1080deg); }
+      from { transform: rotate(0deg); }
+      to { transform: rotate(1080deg); }
     }
-
     .fan-spin {
       animation: spin 2s ease-in-out;
     }
 
-    /* TV screen */
-    .tv-screen {
-      width: 50px;
-      height: 35px;
+    /* TV */
+    .tv {
+      width: 60px;
+      height: 40px;
       margin: auto;
       background: black;
-      border-radius: 5px;
+      border-radius: 6px;
+      border: 3px solid #555;
       transition: 0.3s;
     }
-
     .tv-on {
-      background: white;
+      background: #e0f7fa;
+      box-shadow: 0 0 20px #81d4fa;
     }
 
+    /* Gate motor animation */
+    @keyframes slideGate {
+      0% { transform: translateX(0); }
+      50% { transform: translateX(10px); }
+      100% { transform: translateX(0); }
+    }
+    .gate-move {
+      animation: slideGate 1s ease-in-out 2;
+    }
+
+    /* Pump animation */
+    @keyframes pumpPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+    .pump-on {
+      animation: pumpPulse 1s ease-in-out infinite;
+    }
+
+    .label {
+      margin-top: 10px;
+      font-size: 15px;
+      opacity: 0.85;
+    }
   </style>
 </head>
 <body>
 
-<h1>🏠 Smart Home Dashboard</h1>
+<h1>🏠 Smart Home Control</h1>
 
 <div class="grid">
 
   <div class="device" id="light">
     <div class="icon" id="bulb">💡</div>
-    Light
+    <div class="label">Light</div>
   </div>
 
   <div class="device" id="fan">
-    <div class="icon" id="fanIcon">🌀</div>
-    Fan
+    <div class="icon" id="fanIcon">🪭</div>
+    <div class="label">Fan</div>
   </div>
 
   <div class="device" id="tv">
-    <div class="tv-screen" id="tvScreen"></div>
-    TV
+    <div class="tv" id="tvScreen"></div>
+    <div class="label">TV</div>
+  </div>
+
+  <div class="device" id="gate">
+    <div class="icon" id="gateIcon">🚪</div>
+    <div class="label">Gate Motor</div>
+  </div>
+
+  <div class="device" id="pump">
+    <div class="icon" id="pumpIcon">💧</div>
+    <div class="label">Water Pump</div>
   </div>
 
 </div>
@@ -105,7 +145,7 @@
     password: "Esp1234@@"
   });
 
-  let states = { light:false, fan:false, tv:false };
+  let states = { light:false, fan:false, tv:false, gate:false, pump:false };
 
   function toggleDevice(name) {
     states[name] = !states[name];
@@ -128,11 +168,23 @@
     if(name === "tv") {
       document.getElementById("tvScreen").classList.toggle("tv-on");
     }
+
+    if(name === "gate") {
+      const g = document.getElementById("gateIcon");
+      if(states[name]) g.classList.add("gate-move");
+      else g.classList.remove("gate-move");
+    }
+
+    if(name === "pump") {
+      document.getElementById("pumpIcon").classList.toggle("pump-on");
+    }
   }
 
   document.getElementById("light").onclick = ()=>toggleDevice("light");
   document.getElementById("fan").onclick = ()=>toggleDevice("fan");
   document.getElementById("tv").onclick = ()=>toggleDevice("tv");
+  document.getElementById("gate").onclick = ()=>toggleDevice("gate");
+  document.getElementById("pump").onclick = ()=>toggleDevice("pump");
 </script>
 
 </body>
