@@ -5,75 +5,173 @@
 <title>Smart Home Dashboard</title>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <style>
-body { margin:0; font-family:'Segoe UI',sans-serif; background: linear-gradient(135deg,#0f2027,#203a43,#2c5364); color:white; text-align:center; }
-h1 { margin-top:20px; }
-.status { margin:10px; padding:8px 16px; border-radius:20px; display:inline-block; font-weight:bold; }
-.online { background:#00c853; } .offline { background:#d50000; }
-.container { display:flex; justify-content:center; margin-top:40px; }
-.card { background:rgba(255,255,255,0.08); backdrop-filter: blur(10px); border-radius:20px; padding:30px; width:200px; transition:0.3s; box-shadow:0 10px 30px rgba(0,0,0,0.4);}
-.card.active { background:#00c853; } .card.inactive { background:#b71c1c; }
-.icon { font-size:60px; margin-bottom:10px; transition:0.3s; }
-button { padding:10px 20px; border:none; border-radius:20px; font-size:16px; cursor:pointer; }
+/* Global Body */
+body {
+  margin:0;
+  font-family:'Segoe UI', sans-serif;
+  background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+  color:white;
+}
+
+/* Glass Card style */
+.glass {
+  backdrop-filter: blur(15px);
+  background: rgba(255,255,255,0.1);
+  border-radius: 20px;
+  padding: 30px;
+  margin: 20px auto;
+  width: 90%;
+  max-width: 350px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  text-align: center;
+}
+
+/* Login Screen */
+#loginScreen input {
+  width: 80%;
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 10px;
+  border: none;
+  outline: none;
+  font-size: 16px;
+}
+#loginScreen button {
+  padding: 10px 20px;
+  border-radius: 10px;
+  border:none;
+  cursor:pointer;
+  font-size: 16px;
+  background: #00c853;
+  color:white;
+}
+
+/* Status Indicator */
+.status {
+  margin:10px;
+  padding:8px 16px;
+  border-radius:20px;
+  display:inline-block;
+  font-weight:bold;
+}
+.online { background:#00c853; } 
+.offline { background:#d50000; }
+
+/* Smart Home Cards */
+.container {
+  display:flex;
+  flex-wrap: wrap;
+  justify-content:center;
+  margin-top:40px;
+}
+
+.card {
+  background: rgba(255,255,255,0.1);
+  backdrop-filter: blur(15px);
+  border-radius: 20px;
+  padding:30px;
+  width:150px;
+  margin: 15px;
+  transition:0.3s;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+  cursor:pointer;
+}
+.card.active { background:#00c853; }
+.card.inactive { background:#b71c1c; }
+
+.icon {
+  font-size:50px;
+  margin-bottom:10px;
+  transition:0.3s;
+}
+button { padding:8px 16px; border:none; border-radius:10px; font-size:14px; cursor:pointer; background:#ffffff33; color:white; transition:0.3s;}
+button:hover { background:#ffffff55; }
 </style>
 </head>
 
 <body>
-<h1>🏠 Smart Home Dashboard</h1>
-<div id="status" class="status offline">ESP OFFLINE</div>
-<div class="container">
-  <div id="lightCard" class="card inactive">
-    <div id="bulbIcon" class="icon">💡</div>
-    <h2>Light</h2>
-    <button onclick="toggleLight()">Toggle</button>
+
+<div id="loginScreen" class="glass">
+  <h2>Smart Home Login</h2>
+  <input type="text" id="username" placeholder="Username"><br>
+  <input type="password" id="password" placeholder="Password"><br>
+  <button onclick="login()">Login</button>
+  <p id="loginMsg" style="color:red;"></p>
+</div>
+
+<div id="dashboard" style="display:none;">
+  <h1 style="text-align:center; margin-top:20px;">🏠 Smart Home Dashboard</h1>
+  <div id="status" class="status offline">ESP OFFLINE</div>
+  <div class="container">
+    <div id="lightCard" class="card inactive" onclick="toggleLight()">
+      <div id="bulbIcon" class="icon">💡</div>
+      <h3>Light</h3>
+      <button>Toggle</button>
+    </div>
   </div>
 </div>
 
 <script>
-const client = mqtt.connect("wss://21d29e3f1c8b4623a92f309b0fbe53c4.s1.eu.hivemq.cloud:8884/mqtt", {
-  username: "espuser",
-  password: "Esp1234@@"
-});
+// ----- Login Function -----
+function login() {
+  let user = document.getElementById("username").value;
+  let pass = document.getElementById("password").value;
+  if(user === "ADMIN" && pass === "1234") {
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("dashboard").style.display = "block";
+    initMQTT();
+  } else {
+    document.getElementById("loginMsg").innerText = "Incorrect Username or Password!";
+  }
+}
 
+// ----- MQTT and Smart Home Logic -----
+let client;
 let lightOn = false;
 let lastMsg = Date.now();
 
-// Update UI instantly on connect
-client.on("connect", ()=>{
-  client.subscribe("home/status");
-});
+function initMQTT() {
+  client = mqtt.connect("wss://21d29e3f1c8b4623a92f309b0fbe53c4.s1.eu.hivemq.cloud:8884/mqtt", {
+    username: "espuser",
+    password: "Esp1234@@"
+  });
 
-// Update online/offline instantly and robustly
-client.on("offline", ()=>{
-  document.getElementById("status").className="status offline";
-  document.getElementById("status").innerText="ESP OFFLINE";
-});
+  client.on("connect", ()=>{
+    client.subscribe("home/status");
+  });
 
-client.on("message",(topic,message)=>{
-  let msg = message.toString();
-  lastMsg = Date.now();
-
-  if(msg === "online"){
-    document.getElementById("status").className="status online";
-    document.getElementById("status").innerText="ESP ONLINE";
-  }
-
-  if(msg === "light:ON") setLightUI(true);
-  if(msg === "light:OFF") setLightUI(false);
-});
-
-// Fallback check every 300ms for ESP offline
-setInterval(()=>{
-  if(Date.now() - lastMsg > 1500){
+  client.on("offline", ()=>{
     document.getElementById("status").className="status offline";
     document.getElementById("status").innerText="ESP OFFLINE";
-  }
-},300);
+  });
 
-// Toggle light
+  client.on("message",(topic,message)=>{
+    let msg = message.toString();
+    lastMsg = Date.now();
+
+    if(msg === "online"){
+      document.getElementById("status").className="status online";
+      document.getElementById("status").innerText="ESP ONLINE";
+    }
+
+    if(msg === "light:ON") setLightUI(true);
+    if(msg === "light:OFF") setLightUI(false);
+  });
+
+  // Offline fallback check
+  setInterval(()=>{
+    if(Date.now() - lastMsg > 1500){
+      document.getElementById("status").className="status offline";
+      document.getElementById("status").innerText="ESP OFFLINE";
+    }
+  },300);
+}
+
+// Toggle Light
 function toggleLight(){
   lightOn = !lightOn;
-  setLightUI(lightOn); // Immediate UI feedback
-  client.publish("home/control","light:"+(lightOn?"ON":"OFF"));
+  setLightUI(lightOn); // Immediate UI
+  if(client) client.publish("home/control","light:"+(lightOn?"ON":"OFF"));
 }
 
 // Update UI for internal LED
@@ -90,5 +188,6 @@ function setLightUI(state){
   }
 }
 </script>
+
 </body>
 </html>
