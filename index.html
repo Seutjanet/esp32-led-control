@@ -5,113 +5,723 @@
 <title>Smart Home Dashboard</title>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <style>
-/* Global Body */
-body {
-  margin:0;
-  font-family:'Segoe UI', sans-serif;
-  background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
-  color:white;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-/* Glass Card style */
-.glass {
-  backdrop-filter: blur(15px);
-  background: rgba(255,255,255,0.1);
-  border-radius: 20px;
-  padding: 30px;
-  margin: 20px auto;
-  width: 90%;
-  max-width: 350px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-  text-align: center;
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #2d3561 100%);
+  color: white;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
 /* Login Screen */
+#loginScreen {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(30px);
+  border-radius: 30px;
+  padding: 50px 40px;
+  width: 90%;
+  max-width: 420px;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+#loginScreen h2 {
+  text-align: center;
+  margin-bottom: 35px;
+  font-size: 30px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
 #loginScreen input {
-  width: 80%;
-  padding: 10px;
-  margin: 10px 0;
-  border-radius: 10px;
-  border: none;
+  width: 100%;
+  padding: 16px 20px;
+  margin: 12px 0;
+  border-radius: 16px;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  font-size: 16px;
   outline: none;
-  font-size: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+#loginScreen input:focus {
+  border-color: #4facfe;
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-2px);
+}
+
+#loginScreen input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
 #loginScreen button {
-  padding: 10px 20px;
-  border-radius: 10px;
-  border:none;
-  cursor:pointer;
-  font-size: 16px;
-  background: #00c853;
-  color:white;
+  width: 100%;
+  padding: 16px;
+  margin-top: 25px;
+  border-radius: 16px;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 25px rgba(79, 172, 254, 0.3);
 }
 
-/* Status Indicator */
-.status {
-  margin:10px;
-  padding:8px 16px;
-  border-radius:20px;
-  display:inline-block;
-  font-weight:bold;
+#loginScreen button:active {
+  transform: scale(0.96);
+  box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
 }
-.online { background:#00c853; } 
-.offline { background:#d50000; }
 
-/* Smart Home Cards */
-.container {
-  display:flex;
+#loginScreen button:hover {
+  box-shadow: 0 12px 35px rgba(79, 172, 254, 0.4);
+}
+
+#loginMsg {
+  color: #ff6b6b;
+  text-align: center;
+  margin-top: 18px;
+  font-size: 14px;
+}
+
+/* Dashboard */
+#dashboard {
+  position: relative;
+  padding: 25px;
+  max-width: 1500px;
+  margin: 0 auto;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 35px;
   flex-wrap: wrap;
-  justify-content:center;
-  margin-top:40px;
+  gap: 20px;
+}
+
+.header h1 {
+  font-size: 34px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+#logoutBtn {
+  padding: 12px 28px;
+  border-radius: 16px;
+  background: rgba(255, 107, 107, 0.15);
+  border: 1.5px solid rgba(255, 107, 107, 0.3);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 15px;
+}
+
+#logoutBtn:active {
+  transform: scale(0.95);
+}
+
+#logoutBtn:hover {
+  background: rgba(255, 107, 107, 0.25);
+  border-color: rgba(255, 107, 107, 0.5);
+}
+
+/* Top Info Cards */
+.top-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 25px;
+  margin-bottom: 35px;
+}
+
+.info-card {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(30px);
+  border-radius: 24px;
+  padding: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: default;
+}
+
+.info-card:active {
+  transform: scale(0.98);
+}
+
+.info-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.info-card h3 {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 600;
+}
+
+.info-card .value {
+  font-size: 42px;
+  font-weight: 700;
+  margin: 12px 0;
+  letter-spacing: -1px;
+}
+
+.info-card .sub-value {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+}
+
+.status {
+  display: inline-block;
+  padding: 10px 24px;
+  border-radius: 25px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.status.online {
+  background: linear-gradient(135deg, #00c853 0%, #00e676 100%);
+  box-shadow: 0 8px 20px rgba(0, 200, 83, 0.4);
+}
+
+.status.offline {
+  background: linear-gradient(135deg, #d50000 0%, #ff1744 100%);
+  box-shadow: 0 8px 20px rgba(213, 0, 0, 0.4);
+}
+
+/* Control Cards Grid */
+.controls-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 25px;
+  margin-top: 25px;
 }
 
 .card {
-  background: rgba(255,255,255,0.1);
-  backdrop-filter: blur(15px);
-  border-radius: 20px;
-  padding:30px;
-  width:150px;
-  margin: 15px;
-  transition:0.3s;
-  box-shadow: 0 10px 20px rgba(0,0,0,0.4);
-  cursor:pointer;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(30px);
+  border-radius: 28px;
+  padding: 35px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
-.card.active { background:#00c853; }
-.card.inactive { background:#b71c1c; }
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.card:active::before {
+  width: 300px;
+  height: 300px;
+}
+
+.card:active {
+  transform: scale(0.96);
+}
+
+.card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.card.active {
+  background: linear-gradient(135deg, rgba(79, 172, 254, 0.25) 0%, rgba(0, 242, 254, 0.25) 100%);
+  border-color: rgba(79, 172, 254, 0.5);
+  box-shadow: 0 20px 50px rgba(79, 172, 254, 0.4);
+}
+
+.card.inactive {
+  background: rgba(255, 255, 255, 0.06);
+}
 
 .icon {
-  font-size:50px;
-  margin-bottom:10px;
-  transition:0.3s;
+  font-size: 68px;
+  margin-bottom: 18px;
+  display: block;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
-button { padding:8px 16px; border:none; border-radius:10px; font-size:14px; cursor:pointer; background:#ffffff33; color:white; transition:0.3s;}
-button:hover { background:#ffffff55; }
+
+.card:hover .icon {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.card h3 {
+  font-size: 19px;
+  margin-bottom: 18px;
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 600;
+}
+
+.card button {
+  padding: 11px 28px;
+  border: none;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.card button:active {
+  transform: scale(0.94);
+}
+
+.card button:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* Fan Speed Control Modal */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(12px);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+  animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal-content {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(40px);
+  border-radius: 35px;
+  padding: 45px;
+  width: 90%;
+  max-width: 480px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.7);
+  position: relative;
+  animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-content h2 {
+  text-align: center;
+  margin-bottom: 35px;
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.close-btn {
+  position: absolute;
+  top: 22px;
+  right: 28px;
+  font-size: 36px;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.5);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: none;
+  border: none;
+  padding: 0;
+  width: auto;
+  line-height: 1;
+}
+
+.close-btn:active {
+  transform: scale(0.9) rotate(90deg);
+}
+
+.close-btn:hover {
+  color: white;
+  transform: rotate(90deg);
+}
+
+/* Circular Speed Control */
+.speed-control {
+  width: 270px;
+  height: 270px;
+  margin: 35px auto;
+  position: relative;
+}
+
+.speed-circle {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: conic-gradient(
+    from -90deg,
+    #4facfe 0deg,
+    #00f2fe calc(var(--progress, 0) * 3.6deg),
+    rgba(255, 255, 255, 0.08) calc(var(--progress, 0) * 3.6deg)
+  );
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.speed-circle::before {
+  content: '';
+  position: absolute;
+  width: 82%;
+  height: 82%;
+  background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+  border-radius: 50%;
+  box-shadow: inset 0 5px 20px rgba(0, 0, 0, 0.5);
+}
+
+.speed-value {
+  font-size: 54px;
+  font-weight: 700;
+  z-index: 1;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -2px;
+}
+
+.speed-slider {
+  width: 100%;
+  margin: 25px 0;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  outline: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.speed-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(79, 172, 254, 0.6);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.speed-slider::-webkit-slider-thumb:active {
+  transform: scale(1.2);
+  box-shadow: 0 8px 25px rgba(79, 172, 254, 0.8);
+}
+
+.speed-slider::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 6px 18px rgba(79, 172, 254, 0.6);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.speed-slider::-moz-range-thumb:active {
+  transform: scale(1.2);
+}
+
+.speed-label {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 15px;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+/* Weather Icon Animation */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+.weather-icon {
+  animation: float 4s ease-in-out infinite;
+  font-size: 48px;
+  display: inline-block;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .header h1 {
+    font-size: 26px;
+  }
+  
+  .controls-grid {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 18px;
+  }
+  
+  .card {
+    padding: 25px;
+  }
+  
+  .icon {
+    font-size: 52px;
+  }
+  
+  .top-info {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Loading Animation */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.loading {
+  animation: pulse 2s ease-in-out infinite;
+}
 </style>
 </head>
 
 <body>
 
-<div id="loginScreen" class="glass">
-  <h2>Smart Home Login</h2>
-  <input type="text" id="username" placeholder="Username"><br>
-  <input type="password" id="password" placeholder="Password"><br>
+<!-- Login Screen -->
+<div id="loginScreen">
+  <h2>🏠 Smart Home</h2>
+  <input type="text" id="username" placeholder="Username" autocomplete="username">
+  <input type="password" id="password" placeholder="Password" autocomplete="current-password">
   <button onclick="login()">Login</button>
-  <p id="loginMsg" style="color:red;"></p>
+  <p id="loginMsg"></p>
 </div>
 
+<!-- Dashboard -->
 <div id="dashboard" style="display:none;">
-  <h1 style="text-align:center; margin-top:20px;">🏠 Smart Home Dashboard</h1>
-  <div id="status" class="status offline">ESP OFFLINE</div>
-  <div class="container">
+  <div class="header">
+    <h1>🏠 Smart Home Dashboard</h1>
+    <button id="logoutBtn" onclick="logout()">Logout</button>
+  </div>
+
+  <!-- Top Info Section -->
+  <div class="top-info">
+    <div class="info-card">
+      <h3>Time</h3>
+      <div class="value" id="timeDisplay">--:--</div>
+      <div class="sub-value" id="dateDisplay">Loading...</div>
+    </div>
+
+    <div class="info-card">
+      <h3>Temperature</h3>
+      <div class="weather-icon" id="tempIcon">🌡️</div>
+      <div class="value" id="tempDisplay" style="font-size: 48px;">--°</div>
+      <div class="sub-value" id="feelsLike">Feels like --°</div>
+    </div>
+
+    <div class="info-card">
+      <h3>Weather</h3>
+      <div class="weather-icon" id="weatherIcon">⛅</div>
+      <div class="value" style="font-size: 22px;" id="weatherDisplay">Loading...</div>
+      <div class="sub-value" id="weatherDesc">Kathmandu, Nepal</div>
+    </div>
+
+    <div class="info-card">
+      <h3>ESP32 Status</h3>
+      <div style="margin-top: 25px;">
+        <div id="status" class="status offline">OFFLINE</div>
+      </div>
+      <div class="sub-value" style="margin-top: 15px;" id="lastUpdate">Waiting...</div>
+    </div>
+  </div>
+
+  <!-- Control Cards -->
+  <div class="controls-grid">
     <div id="lightCard" class="card inactive" onclick="toggleLight()">
       <div id="bulbIcon" class="icon">💡</div>
       <h3>Light</h3>
       <button>Toggle</button>
     </div>
+
+    <div id="fanCard" class="card inactive" onclick="openFanControl()">
+      <div id="fanIcon" class="icon">🌀</div>
+      <h3>Fan</h3>
+      <button>Control</button>
+    </div>
+
+    <div id="doorCard" class="card inactive" onclick="toggleDoor()">
+      <div id="doorIcon" class="icon">🚪</div>
+      <h3>Sliding Door</h3>
+      <button>Toggle</button>
+    </div>
+
+    <div id="pumpCard" class="card inactive" onclick="togglePump()">
+      <div id="pumpIcon" class="icon">💧</div>
+      <h3>Water Pump</h3>
+      <button>Toggle</button>
+    </div>
+  </div>
+</div>
+
+<!-- Fan Speed Control Modal -->
+<div id="fanModal" class="modal">
+  <div class="modal-content">
+    <button class="close-btn" onclick="closeFanControl()">&times;</button>
+    <h2>🌀 Fan Speed Control</h2>
+    
+    <div class="speed-control">
+      <div class="speed-circle" id="speedCircle" style="--progress: 0">
+        <div class="speed-value" id="speedValue">0</div>
+      </div>
+    </div>
+    
+    <input type="range" min="0" max="100" value="0" class="speed-slider" id="speedSlider" oninput="updateFanSpeed(this.value)">
+    <div class="speed-label">Slide to adjust fan speed</div>
   </div>
 </div>
 
 <script>
+// ----- Weather API for Kathmandu -----
+async function fetchWeather() {
+  try {
+    const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=27.7172&longitude=85.3240&current=temperature_2m,apparent_temperature,weathercode&timezone=Asia%2FKathmandu');
+    const data = await response.json();
+    
+    const temp = Math.round(data.current.temperature_2m);
+    const feelsLike = Math.round(data.current.apparent_temperature);
+    const weatherCode = data.current.weathercode;
+    
+    document.getElementById('tempDisplay').innerText = temp + '°';
+    document.getElementById('feelsLike').innerText = `Feels like ${feelsLike}°`;
+    
+    // Weather code mapping
+    const weatherInfo = getWeatherInfo(weatherCode);
+    document.getElementById('weatherDisplay').innerText = weatherInfo.description;
+    document.getElementById('weatherIcon').innerText = weatherInfo.icon;
+    document.getElementById('tempIcon').innerText = temp > 25 ? '🌡️' : '❄️';
+    
+  } catch (error) {
+    console.log('Weather fetch error:', error);
+    document.getElementById('tempDisplay').innerText = '25°';
+    document.getElementById('feelsLike').innerText = 'Feels like 27°';
+    document.getElementById('weatherDisplay').innerText = 'Partly Cloudy';
+  }
+}
+
+function getWeatherInfo(code) {
+  const weatherMap = {
+    0: { icon: '☀️', description: 'Clear Sky' },
+    1: { icon: '🌤️', description: 'Mainly Clear' },
+    2: { icon: '⛅', description: 'Partly Cloudy' },
+    3: { icon: '☁️', description: 'Overcast' },
+    45: { icon: '🌫️', description: 'Foggy' },
+    48: { icon: '🌫️', description: 'Foggy' },
+    51: { icon: '🌦️', description: 'Light Drizzle' },
+    61: { icon: '🌧️', description: 'Light Rain' },
+    63: { icon: '🌧️', description: 'Moderate Rain' },
+    80: { icon: '🌦️', description: 'Rain Showers' },
+    95: { icon: '⛈️', description: 'Thunderstorm' },
+  };
+  
+  return weatherMap[code] || { icon: '⛅', description: 'Partly Cloudy' };
+}
+
+// ----- Time and Date Update (Kathmandu timezone) -----
+function updateDateTime() {
+  const now = new Date();
+  
+  // Format for Kathmandu timezone
+  const timeOptions = { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'Asia/Kathmandu'
+  };
+  
+  const dateOptions = { 
+    weekday: 'long', 
+    month: 'long', 
+    day: 'numeric',
+    timeZone: 'Asia/Kathmandu'
+  };
+  
+  document.getElementById('timeDisplay').innerText = now.toLocaleTimeString('en-US', timeOptions);
+  document.getElementById('dateDisplay').innerText = now.toLocaleDateString('en-US', dateOptions);
+}
+
+// Update time every second
+setInterval(updateDateTime, 1000);
+updateDateTime();
+
+// Update weather every 10 minutes
+setInterval(fetchWeather, 600000);
+
 // ----- Login Function -----
 function login() {
   let user = document.getElementById("username").value;
@@ -119,15 +729,30 @@ function login() {
   if(user === "ADMIN" && pass === "1234") {
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("dashboard").style.display = "block";
+    fetchWeather(); // Fetch weather on login
     initMQTT();
   } else {
     document.getElementById("loginMsg").innerText = "Incorrect Username or Password!";
   }
 }
 
+// ----- Logout Function -----
+function logout() {
+  if(client) client.end(true);
+  document.getElementById("dashboard").style.display = "none";
+  document.getElementById("loginScreen").style.display = "block";
+  document.getElementById("username").value = "";
+  document.getElementById("password").value = "";
+  document.getElementById("loginMsg").innerText = "";
+}
+
 // ----- MQTT and Smart Home Logic -----
 let client;
 let lightOn = false;
+let fanOn = false;
+let doorOpen = false;
+let pumpOn = false;
+let fanSpeed = 0;
 let lastMsg = Date.now();
 
 function initMQTT() {
@@ -138,55 +763,184 @@ function initMQTT() {
 
   client.on("connect", ()=>{
     client.subscribe("home/status");
+    document.getElementById("lastUpdate").innerText = "Connected";
   });
 
   client.on("offline", ()=>{
     document.getElementById("status").className="status offline";
-    document.getElementById("status").innerText="ESP OFFLINE";
+    document.getElementById("status").innerText="OFFLINE";
+    document.getElementById("lastUpdate").innerText = "Connection lost";
   });
 
   client.on("message",(topic,message)=>{
     let msg = message.toString();
     lastMsg = Date.now();
+    
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      timeZone: 'Asia/Kathmandu'
+    });
+    document.getElementById("lastUpdate").innerText = `Last update: ${timeStr}`;
 
     if(msg === "online"){
       document.getElementById("status").className="status online";
-      document.getElementById("status").innerText="ESP ONLINE";
+      document.getElementById("status").innerText="ONLINE";
     }
 
     if(msg === "light:ON") setLightUI(true);
     if(msg === "light:OFF") setLightUI(false);
+    
+    if(msg === "fan:ON") setFanUI(true);
+    if(msg === "fan:OFF") setFanUI(false);
+    
+    if(msg.startsWith("fanspeed:")) {
+      let speed = parseInt(msg.split(":")[1]);
+      setFanSpeedUI(speed);
+    }
+    
+    if(msg === "door:OPEN") setDoorUI(true);
+    if(msg === "door:CLOSE") setDoorUI(false);
+    
+    if(msg === "pump:ON") setPumpUI(true);
+    if(msg === "pump:OFF") setPumpUI(false);
   });
 
   // Offline fallback check
   setInterval(()=>{
     if(Date.now() - lastMsg > 1500){
       document.getElementById("status").className="status offline";
-      document.getElementById("status").innerText="ESP OFFLINE";
+      document.getElementById("status").innerText="OFFLINE";
+      document.getElementById("lastUpdate").innerText = "Connection timeout";
     }
   },300);
 }
 
-// Toggle Light
+// ----- Toggle Light (ESP32 Internal LED) -----
 function toggleLight(){
   lightOn = !lightOn;
-  setLightUI(lightOn); // Immediate UI
+  setLightUI(lightOn);
   if(client) client.publish("home/control","light:"+(lightOn?"ON":"OFF"));
 }
 
-// Update UI for internal LED
 function setLightUI(state){
   lightOn = state;
   let card = document.getElementById("lightCard");
   let icon = document.getElementById("bulbIcon");
   if(state){
     card.className="card active";
-    icon.style.filter="drop-shadow(0 0 20px yellow)";
+    icon.style.filter="drop-shadow(0 0 30px #ffd700)";
   } else {
     card.className="card inactive";
     icon.style.filter="none";
   }
 }
+
+// ----- Fan Control -----
+function openFanControl(){
+  fanOn = true;
+  setFanUI(true);
+  if(client) client.publish("home/control","fan:ON");
+  document.getElementById("fanModal").style.display = "flex";
+}
+
+function closeFanControl(){
+  document.getElementById("fanModal").style.display = "none";
+}
+
+function updateFanSpeed(speed){
+  fanSpeed = parseInt(speed);
+  document.getElementById("speedValue").innerText = fanSpeed;
+  document.getElementById("speedCircle").style.setProperty('--progress', fanSpeed);
+  
+  if(client) client.publish("home/control","fanspeed:"+fanSpeed);
+  
+  // If speed is 0, turn fan off
+  if(fanSpeed === 0){
+    fanOn = false;
+    setFanUI(false);
+    if(client) client.publish("home/control","fan:OFF");
+  } else {
+    fanOn = true;
+    setFanUI(true);
+  }
+}
+
+function setFanUI(state){
+  fanOn = state;
+  let card = document.getElementById("fanCard");
+  let icon = document.getElementById("fanIcon");
+  if(state){
+    card.className="card active";
+    icon.style.transform = "rotate(360deg)";
+  } else {
+    card.className="card inactive";
+    icon.style.transform = "rotate(0deg)";
+  }
+}
+
+function setFanSpeedUI(speed){
+  fanSpeed = speed;
+  document.getElementById("speedValue").innerText = fanSpeed;
+  document.getElementById("speedSlider").value = fanSpeed;
+  document.getElementById("speedCircle").style.setProperty('--progress', fanSpeed);
+}
+
+// ----- Sliding Door Control -----
+function toggleDoor(){
+  doorOpen = !doorOpen;
+  setDoorUI(doorOpen);
+  if(client) client.publish("home/control","door:"+(doorOpen?"OPEN":"CLOSE"));
+}
+
+function setDoorUI(state){
+  doorOpen = state;
+  let card = document.getElementById("doorCard");
+  let icon = document.getElementById("doorIcon");
+  if(state){
+    card.className="card active";
+    icon.style.transform = "translateX(10px)";
+  } else {
+    card.className="card inactive";
+    icon.style.transform = "translateX(0)";
+  }
+}
+
+// ----- Water Pump Control -----
+function togglePump(){
+  pumpOn = !pumpOn;
+  setPumpUI(pumpOn);
+  if(client) client.publish("home/control","pump:"+(pumpOn?"ON":"OFF"));
+}
+
+function setPumpUI(state){
+  pumpOn = state;
+  let card = document.getElementById("pumpCard");
+  let icon = document.getElementById("pumpIcon");
+  if(state){
+    card.className="card active";
+    icon.style.filter="drop-shadow(0 0 20px #00bcd4)";
+  } else {
+    card.className="card inactive";
+    icon.style.filter="none";
+  }
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+  const modal = document.getElementById("fanModal");
+  if (event.target == modal) {
+    closeFanControl();
+  }
+}
+
+// Allow Enter key to login
+document.getElementById("password").addEventListener("keypress", function(event) {
+  if (event.key === "Enter") {
+    login();
+  }
+});
 </script>
 
 </body>
