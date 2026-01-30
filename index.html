@@ -2,13 +2,13 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Smart Home Control</title>
+<title>Smart Home Dashboard</title>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 
 <style>
 body {
   margin:0;
-  font-family: 'Segoe UI', sans-serif;
+  font-family:'Segoe UI',sans-serif;
   background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
   color:white;
   text-align:center;
@@ -63,8 +63,7 @@ button {
 </head>
 
 <body>
-
-<h1>🏠 Smart Home</h1>
+<h1>🏠 Smart Home Dashboard</h1>
 <div id="status" class="status offline">ESP OFFLINE</div>
 
 <div class="container">
@@ -82,43 +81,42 @@ const client = mqtt.connect("wss://21d29e3f1c8b4623a92f309b0fbe53c4.s1.eu.hivemq
 });
 
 let lightOn = false;
-let lastSeen = Date.now();
 
-client.on("connect", () => {
+// Instant update when ESP connects
+client.on("connect", ()=>{
+  document.getElementById("status").className="status online";
+  document.getElementById("status").innerText="ESP ONLINE";
   client.subscribe("home/status");
 });
 
-client.on("message", (topic, message) => {
+// When ESP goes offline
+client.on("offline", ()=>{
+  document.getElementById("status").className="status offline";
+  document.getElementById("status").innerText="ESP OFFLINE";
+});
+
+// Handle messages
+client.on("message",(topic,message)=>{
   let msg = message.toString();
-
-  if(msg === "online") {
-    lastSeen = Date.now();
+  if(msg === "online"){
+    document.getElementById("status").className="status online";
+    document.getElementById("status").innerText="ESP ONLINE";
   }
-
   if(msg === "light:ON") setLightUI(true);
   if(msg === "light:OFF") setLightUI(false);
 });
 
-setInterval(()=>{
-  if(Date.now() - lastSeen > 7000){
-    document.getElementById("status").className="status offline";
-    document.getElementById("status").innerText="ESP OFFLINE";
-  } else {
-    document.getElementById("status").className="status online";
-    document.getElementById("status").innerText="ESP ONLINE";
-  }
-},200);
-
+// Toggle light command
 function toggleLight(){
   lightOn = !lightOn;
-  client.publish("home/control", "light:" + (lightOn?"ON":"OFF"));
+  client.publish("home/control","light:" + (lightOn?"ON":"OFF"));
 }
 
+// Update UI for LED
 function setLightUI(state){
   lightOn = state;
   let card = document.getElementById("lightCard");
   let icon = document.getElementById("bulbIcon");
-
   if(state){
     card.className="card active";
     icon.style.filter="drop-shadow(0 0 20px yellow)";
@@ -128,7 +126,5 @@ function setLightUI(state){
   }
 }
 </script>
-
 </body>
 </html>
-
