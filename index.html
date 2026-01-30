@@ -6,50 +6,45 @@
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <style>
 :root {
-  --primary-bg: #0f111a;
+  --bg-color: #0f111a;
   --card-bg: rgba(30, 35, 50, 0.6);
   --accent: #4facfe;
   --text-muted: rgba(255, 255, 255, 0.5);
+  --danger: #ff4757;
+  --success: #00e676;
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
   font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background-color: var(--primary-bg);
-  /* Background glow effect similar to image */
+  background-color: var(--bg-color);
   background-image: 
-    radial-gradient(circle at 0% 0%, rgba(79, 172, 254, 0.1), transparent 40%),
-    radial-gradient(circle at 100% 100%, rgba(162, 58, 255, 0.1), transparent 40%);
+    radial-gradient(circle at 10% 10%, rgba(79, 172, 254, 0.1), transparent 40%),
+    radial-gradient(circle at 90% 90%, rgba(162, 58, 255, 0.1), transparent 40%);
   color: white;
   height: 100vh;
-  overflow: hidden;
+  overflow: hidden; 
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
-/* Login Screen - Unchanged */
+/* Login Screen */
 #loginScreen {
-  position: fixed;
-  z-index: 100;
-  background: rgba(20, 25, 40, 0.95);
+  position: fixed; z-index: 100;
+  background: rgba(20, 25, 40, 0.98);
   backdrop-filter: blur(20px);
   border-radius: 20px;
-  padding: 40px;
-  width: 90%;
-  max-width: 400px;
+  padding: 40px; width: 90%; max-width: 400px;
   border: 1px solid rgba(255,255,255,0.1);
   text-align: center;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
 }
 #loginScreen input {
   width: 100%; padding: 15px; margin: 10px 0;
   border-radius: 10px; border: 1px solid #333;
-  background: #0a0c12; color: white;
+  background: #0a0c12; color: white; outline: none;
 }
 #loginScreen button {
   width: 100%; padding: 15px; margin-top: 20px;
@@ -57,260 +52,136 @@ body {
   background: linear-gradient(90deg, #4facfe, #00f2fe);
   color: white; font-weight: bold; cursor: pointer;
 }
+#loginMsg { color: var(--danger); margin-top: 10px; font-size: 14px; }
 
-/* MAIN DASHBOARD LAYOUT */
+/* Dashboard Grid Layout */
 #dashboard {
-  width: 95%;
-  height: 90vh;
-  max-width: 1400px;
-  display: grid;
-  grid-template-columns: 350px 1fr; /* Fixed Left Sidebar, Flexible Right */
+  display: none; /* Hidden by default */
+  grid-template-columns: 350px 1fr; /* Fixed Left, Flexible Right */
+  width: 95%; height: 90vh;
   gap: 30px;
+  max-width: 1400px;
 }
 
-/* LEFT SIDE - INFO WIDGETS */
-.left-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+/* Left Sidebar */
+.left-section {
+  display: flex; flex-direction: column; gap: 20px;
 }
 
-/* Time Widget */
-.widget-time {
-  padding: 10px;
-}
-.time-big {
-  font-size: 64px;
-  font-weight: 200;
-  line-height: 1;
-  letter-spacing: -2px;
-}
-.date-small {
-  color: var(--text-muted);
-  font-size: 16px;
-  margin-top: 5px;
-}
+.time-widget { padding: 10px; }
+.time-display { font-size: 64px; font-weight: 200; line-height: 1; letter-spacing: -2px; }
+.date-display { color: var(--text-muted); font-size: 16px; margin-top: 5px; }
 
-/* Weather Card (Large Square) */
-.widget-weather {
+.weather-widget {
   background: var(--card-bg);
   border-radius: 25px;
   padding: 30px;
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  display: flex; flex-direction: column; justify-content: space-between;
   border: 1px solid rgba(255,255,255,0.05);
 }
-.weather-temp {
-  font-size: 52px;
-  font-weight: 300;
-}
-.weather-desc {
-  color: var(--text-muted);
-  margin-top: 5px;
-}
-.weather-icon-lg {
-  font-size: 60px;
-  margin-bottom: 20px;
-}
+.weather-temp { font-size: 52px; font-weight: 300; }
+.weather-icon-lg { font-size: 60px; margin-bottom: 20px; }
 
-/* Small Info Grid (Humidity/Status) */
-.info-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
+.status-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 15px;
 }
-.widget-small {
+.status-card {
   background: var(--card-bg);
-  border-radius: 20px;
-  padding: 20px;
+  border-radius: 20px; padding: 20px;
   border: 1px solid rgba(255,255,255,0.05);
 }
-.label-small {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-bottom: 5px;
-}
-.value-small {
-  font-size: 24px;
-  font-weight: 500;
-}
+.status-label { font-size: 12px; color: var(--text-muted); margin-bottom: 5px; }
+.status-val { font-size: 20px; font-weight: 500; }
 
-/* RIGHT SIDE - CONTROLS & GAUGE */
+.status-badge {
+  display: inline-block;
+  font-weight: bold;
+  font-size: 18px;
+}
+.status-badge.online { color: var(--success); text-shadow: 0 0 10px rgba(0,230,118,0.4); }
+.status-badge.offline { color: var(--danger); text-shadow: 0 0 10px rgba(255,71,87,0.4); }
+
+/* Right Panel */
 .right-panel {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  position: relative;
-  padding: 20px 40px;
   background: rgba(255, 255, 255, 0.02);
   border-radius: 40px;
   border: 1px solid rgba(255,255,255,0.05);
+  display: flex; flex-direction: column;
+  padding: 30px 50px;
+  position: relative;
 }
 
-/* Logout Button absolute top right */
-.header-actions {
-  position: absolute;
-  top: 30px;
-  right: 30px;
-}
 #logoutBtn {
+  position: absolute; top: 30px; right: 30px;
   background: rgba(255, 100, 100, 0.1);
   border: 1px solid rgba(255, 100, 100, 0.3);
-  color: #ff6b6b;
-  padding: 8px 16px;
-  border-radius: 20px;
-  cursor: pointer;
-  font-size: 12px;
+  color: #ff6b6b; padding: 8px 16px; border-radius: 20px;
+  cursor: pointer; font-size: 12px;
 }
 
-/* The Gauge Section */
-.gauge-section {
-  flex: 2;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+/* Gauge */
+.gauge-area {
+  flex: 2; display: flex; justify-content: center; align-items: center;
   position: relative;
 }
-
-.circular-gauge {
-  width: 400px;
-  height: 400px;
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-/* SVG Gauge Ring */
-svg.gauge-ring {
-  transform: rotate(-90deg);
-  width: 100%;
-  height: 100%;
-}
-circle.bg-ring {
-  fill: none;
-  stroke: rgba(255,255,255,0.05);
-  stroke-width: 25;
-}
+.circular-gauge { width: 350px; height: 350px; position: relative; }
+svg.gauge-ring { transform: rotate(-90deg); width: 100%; height: 100%; }
+circle.bg-ring { fill: none; stroke: rgba(255,255,255,0.05); stroke-width: 25; }
 circle.progress-ring {
-  fill: none;
-  stroke: url(#gradient);
-  stroke-width: 25;
-  stroke-dasharray: 1005; /* Circumference approx */
-  stroke-dashoffset: calc(1005 - (1005 * var(--progress, 0)) / 100);
-  transition: stroke-dashoffset 0.5s ease;
-  stroke-linecap: round;
+  fill: none; stroke: url(#gradient); stroke-width: 25;
+  stroke-dasharray: 1005; 
+  stroke-dashoffset: 1005; /* Full offset = empty */
+  transition: stroke-dashoffset 0.5s ease; stroke-linecap: round;
 }
+.gauge-text {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%); text-align: center;
+}
+.gauge-val { font-size: 80px; font-weight: 300; line-height: 1; }
 
-.gauge-center-text {
-  position: absolute;
-  text-align: center;
+/* Control Buttons */
+.controls-row {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 40px;
 }
-.gauge-label {
-  color: var(--text-muted);
-  font-size: 14px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  margin-bottom: 10px;
-}
-.gauge-main-val {
-  font-size: 90px;
-  font-weight: 300;
-  line-height: 1;
-}
-.gauge-unit {
-  font-size: 16px;
-  color: var(--text-muted);
-}
-
-/* Button Grid - Middle Right */
-.control-buttons {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  margin-bottom: 40px;
-}
-
-.btn-card {
+.ctrl-btn {
   background: var(--card-bg);
   border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 18px;
-  height: 110px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  border-radius: 18px; height: 110px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.3s ease; user-select: none;
 }
-
-.btn-card:hover {
-  background: rgba(255,255,255,0.1);
-  transform: translateY(-5px);
+.ctrl-btn:hover { transform: translateY(-5px); background: rgba(255,255,255,0.1); }
+.ctrl-btn.active {
+  background: linear-gradient(135deg, rgba(79, 172, 254, 0.2), rgba(0, 242, 254, 0.2));
+  border-color: #4facfe; box-shadow: 0 0 20px rgba(79, 172, 254, 0.2);
 }
-
-.btn-card.active {
-  background: linear-gradient(135deg, rgba(79, 172, 254, 0.2) 0%, rgba(0, 242, 254, 0.2) 100%);
-  border-color: #4facfe;
-  box-shadow: 0 0 20px rgba(79, 172, 254, 0.1);
-}
-
 .btn-icon { font-size: 32px; margin-bottom: 8px; transition: transform 0.3s; }
-.btn-card.active .btn-icon { transform: scale(1.1); }
-.btn-label { font-size: 13px; color: rgba(255,255,255,0.8); }
+.ctrl-btn.active .btn-icon { transform: scale(1.1); }
 
-/* Slider Section - Bottom Right */
-.slider-container {
-  margin-bottom: 20px;
-  padding: 0 20px;
-}
-.slider-labels {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-bottom: 10px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-/* Custom Range Input styling */
+/* Slider */
+.slider-wrap { margin-bottom: 20px; padding: 0 10px; }
+.slider-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
 input[type=range] {
-  -webkit-appearance: none;
-  width: 100%;
-  background: transparent;
+  -webkit-appearance: none; width: 100%; background: transparent;
 }
 input[type=range]::-webkit-slider-runnable-track {
-  width: 100%;
-  height: 6px;
-  background: linear-gradient(90deg, #4facfe, #a23aff);
-  border-radius: 3px;
-  cursor: pointer;
+  width: 100%; height: 6px; background: linear-gradient(90deg, #4facfe, #a23aff);
+  border-radius: 3px; cursor: pointer;
 }
 input[type=range]::-webkit-slider-thumb {
-  height: 24px;
-  width: 24px;
-  border-radius: 50%;
-  background: #fff;
-  cursor: pointer;
-  -webkit-appearance: none;
-  margin-top: -9px;
-  box-shadow: 0 0 15px rgba(255,255,255,0.5);
-  border: 4px solid #1a1f3a;
+  -webkit-appearance: none; height: 24px; width: 24px; border-radius: 50%;
+  background: #fff; cursor: pointer; margin-top: -9px;
+  box-shadow: 0 0 15px rgba(255,255,255,0.5); border: 4px solid #1a1f3a;
 }
 
-/* Responsive */
 @media (max-width: 1000px) {
-  #dashboard { grid-template-columns: 1fr; height: auto; padding-bottom: 50px; }
+  #dashboard { grid-template-columns: 1fr; height: auto; overflow-y: auto; display: none; }
   .right-panel { height: auto; gap: 40px; }
-  .circular-gauge { width: 300px; height: 300px; }
-  .control-buttons { grid-template-columns: repeat(2, 1fr); }
+  .controls-row { grid-template-columns: repeat(2, 1fr); }
 }
 </style>
 </head>
-
 <body>
 
 <!-- Login Screen -->
@@ -318,292 +189,308 @@ input[type=range]::-webkit-slider-thumb {
   <h2 style="margin-bottom:20px;">Welcome Home</h2>
   <input type="text" id="username" placeholder="Username" autocomplete="username">
   <input type="password" id="password" placeholder="Password" autocomplete="current-password">
-  <button onclick="login()">Enter Dashboard</button>
-  <p id="loginMsg" style="color:#ff6b6b; margin-top:10px; font-size:14px;"></p>
+  <button onclick="attemptLogin()">Login</button>
+  <p id="loginMsg"></p>
 </div>
 
-<!-- Dashboard -->
-<div id="dashboard" style="display:none;">
-  
-  <!-- LEFT SIDEBAR: Info & Widgets -->
-  <div class="left-sidebar">
-    
-    <!-- Time Block -->
-    <div class="widget-time">
-      <div class="time-big" id="timeDisplay">09:30<span style="font-size:24px">AM</span></div>
-      <div class="date-small" id="dateDisplay">Tuesday, March 25</div>
+<!-- Main Dashboard -->
+<div id="dashboard">
+  <!-- Left Side -->
+  <div class="left-section">
+    <div class="time-widget">
+      <div class="time-display" id="clock">00:00</div>
+      <div class="date-display" id="date">Loading...</div>
     </div>
 
-    <!-- Weather Block -->
-    <div class="widget-weather">
+    <div class="weather-widget">
       <div>
-        <div class="label-small">Today</div>
-        <div class="weather-icon-lg" id="weatherIcon">⛅</div>
-        <div class="weather-temp" id="tempDisplay">25°</div>
-        <div class="weather-desc" id="weatherDisplay">Partly Cloudy</div>
+        <div class="status-label">Current Weather</div>
+        <div class="weather-icon-lg" id="wIcon">⛅</div>
+        <div class="weather-temp" id="wTemp">--°</div>
+        <div style="color:rgba(255,255,255,0.5)" id="wDesc">Loading...</div>
       </div>
-      <div style="font-size: 13px; color: rgba(255,255,255,0.4);">
-        Kathmandu, Nepal<br>
-        <span id="feelsLike">Feels like 27°</span>
-      </div>
+      <div style="font-size:13px; color:rgba(255,255,255,0.3)">Kathmandu, Nepal</div>
     </div>
 
-    <!-- Status Grid -->
-    <div class="info-grid">
-      <div class="widget-small">
-        <div class="label-small">Air Quality</div>
-        <div class="value-small" id="airQuality">Good</div>
+    <div class="status-grid">
+      <div class="status-card">
+        <div class="status-label">Air Quality</div>
+        <div class="status-val">Good</div>
       </div>
-      <div class="widget-small">
-        <div class="label-small">Humidity</div>
-        <div class="value-small" id="humidity">65%</div>
+      <div class="status-card">
+        <div class="status-label">Humidity</div>
+        <div class="status-val" id="humVal">65%</div>
       </div>
-      <div class="widget-small">
-        <div class="label-small">ESP32</div>
-        <div class="value-small" id="status" style="color:#ff4757">OFFLINE</div>
+      <div class="status-card">
+        <div class="status-label">System Status</div>
+        <div class="status-badge offline" id="espStatus">OFFLINE</div>
       </div>
-      <div class="widget-small">
-        <div class="label-small">Update</div>
-        <div class="value-small" id="lastTime" style="font-size:14px; margin-top:5px;">--:--</div>
+      <div class="status-card">
+        <div class="status-label">Last Update</div>
+        <div class="status-label" id="lastMsgTime">Waiting...</div>
       </div>
     </div>
-
   </div>
 
-  <!-- RIGHT PANEL: Gauge & Controls -->
+  <!-- Right Side -->
   <div class="right-panel">
-    
-    <div class="header-actions">
-      <button id="logoutBtn" onclick="logout()">Logout</button>
-    </div>
+    <button id="logoutBtn" onclick="logout()">Logout</button>
 
-    <!-- The Big Gauge -->
-    <div class="gauge-section">
+    <!-- Gauge -->
+    <div class="gauge-area">
       <div class="circular-gauge">
         <svg class="gauge-ring" viewBox="0 0 360 360">
           <defs>
-            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#4facfe" />
-              <stop offset="100%" stop-color="#a23aff" />
+            <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#4facfe"/>
+              <stop offset="100%" stop-color="#a23aff"/>
             </linearGradient>
           </defs>
           <circle cx="180" cy="180" r="160" class="bg-ring"></circle>
-          <circle cx="180" cy="180" r="160" class="progress-ring" id="gaugeRing" style="--progress: 0"></circle>
+          <circle cx="180" cy="180" r="160" class="progress-ring" id="gaugePath"></circle>
         </svg>
-        
-        <div class="gauge-center-text">
-          <div class="gauge-label">Fan Speed</div>
-          <div class="gauge-main-val" id="gaugeValue">0</div>
-          <div class="gauge-unit" id="gaugeSubtext">OFF</div>
+        <div class="gauge-text">
+          <div class="status-label" style="letter-spacing:2px; margin-bottom:10px;">FAN SPEED</div>
+          <div class="gauge-val" id="gaugeText">0</div>
+          <div class="status-label" id="gaugeSub">OFF</div>
         </div>
       </div>
     </div>
 
-    <!-- Control Buttons Grid -->
-    <div class="control-buttons">
-      <div id="lightCard" class="btn-card" onclick="toggleLight()">
-        <div class="btn-icon" id="bulbIcon">💡</div>
-        <div class="btn-label">Light</div>
+    <!-- Buttons -->
+    <div class="controls-row">
+      <div id="btnLight" class="ctrl-btn" onclick="toggle('light')">
+        <div class="btn-icon">💡</div>
+        <div class="status-label" style="color:white">Light</div>
       </div>
-      <div id="fanCard" class="btn-card" onclick="toggleFanPower()">
-        <div class="btn-icon" id="fanIcon">🌀</div>
-        <div class="btn-label">Fan Power</div>
+      <div id="btnFan" class="ctrl-btn" onclick="toggle('fan')">
+        <div class="btn-icon">🌀</div>
+        <div class="status-label" style="color:white">Fan Power</div>
       </div>
-      <div id="doorCard" class="btn-card" onclick="toggleDoor()">
-        <div class="btn-icon" id="doorIcon">🚪</div>
-        <div class="btn-label">Door</div>
+      <div id="btnDoor" class="ctrl-btn" onclick="toggle('door')">
+        <div class="btn-icon">🚪</div>
+        <div class="status-label" style="color:white">Door</div>
       </div>
-      <div id="pumpCard" class="btn-card" onclick="togglePump()">
-        <div class="btn-icon" id="pumpIcon">💧</div>
-        <div class="btn-label">Pump</div>
+      <div id="btnPump" class="ctrl-btn" onclick="toggle('pump')">
+        <div class="btn-icon">💧</div>
+        <div class="status-label" style="color:white">Pump</div>
       </div>
     </div>
 
-    <!-- The "Scroll" (Slider) -->
-    <div class="slider-container">
+    <!-- Scroll/Slider -->
+    <div class="slider-wrap">
       <div class="slider-labels">
         <span>Decrease</span>
-        <span>Set Speed</span>
+        <span>Fan Speed Control</span>
         <span>Increase</span>
       </div>
-      <input type="range" min="0" max="100" value="0" id="speedSlider" oninput="updateFanSpeed(this.value)">
+      <input type="range" min="0" max="100" value="0" id="speedInput" oninput="handleSlider(this.value)">
     </div>
-
   </div>
 </div>
 
 <script>
-// ----- Weather API for Kathmandu -----
-async function fetchWeather() {
-  try {
-    const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=27.7172&longitude=85.3240&current=temperature_2m,apparent_temperature,weathercode&timezone=Asia%2FKathmandu');
-    const data = await response.json();
-    const temp = Math.round(data.current.temperature_2m);
-    const feelsLike = Math.round(data.current.apparent_temperature);
-    const weatherCode = data.current.weathercode;
-    
-    document.getElementById('tempDisplay').innerText = temp + '°';
-    document.getElementById('feelsLike').innerText = `Feels like ${feelsLike}°`;
-    
-    const weatherMap = {
-      0: { icon: '☀️', desc: 'Clear Sky' },
-      1: { icon: '🌤️', desc: 'Mainly Clear' },
-      2: { icon: '⛅', desc: 'Partly Cloudy' },
-      3: { icon: '☁️', desc: 'Overcast' },
-      45: { icon: '🌫️', desc: 'Foggy' },
-      95: { icon: '⛈️', desc: 'Thunderstorm' },
-    };
-    let w = weatherMap[weatherCode] || { icon: '⛅', desc: 'Cloudy' };
-    
-    document.getElementById('weatherDisplay').innerText = w.desc;
-    document.getElementById('weatherIcon').innerText = w.icon;
-  } catch (error) { console.log(error); }
-}
+// --- State Management with LocalStorage ---
+const state = {
+  light: localStorage.getItem('s_light') === 'true',
+  fan: localStorage.getItem('s_fan') === 'true',
+  door: localStorage.getItem('s_door') === 'true',
+  pump: localStorage.getItem('s_pump') === 'true',
+  fanSpeed: parseInt(localStorage.getItem('s_speed') || '0'),
+  isLoggedIn: localStorage.getItem('isLoggedIn') === 'true'
+};
 
-// ----- Time and Date -----
-function updateDateTime() {
-  const now = new Date();
-  const timeOpts = { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kathmandu' };
-  const dateOpts = { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'Asia/Kathmandu' };
-  
-  let timeHtml = now.toLocaleTimeString('en-US', timeOpts);
-  // Split AM/PM for styling
-  timeHtml = timeHtml.replace(/AM|PM/, (match) => `<span style="font-size:24px; margin-left:5px;">${match}</span>`);
-  
-  document.getElementById('timeDisplay').innerHTML = timeHtml;
-  document.getElementById('dateDisplay').innerText = now.toLocaleDateString('en-US', dateOpts);
-}
-setInterval(updateDateTime, 1000);
-updateDateTime();
-setInterval(fetchWeather, 600000);
+let client = null;
+let lastMsgTime = 0;
 
-// ----- Login/Logout -----
-function login() {
-  let u = document.getElementById("username").value;
-  let p = document.getElementById("password").value;
+// --- Initialization ---
+window.onload = function() {
+  updateTime();
+  setInterval(updateTime, 1000);
+  setInterval(fetchWeather, 600000);
+  fetchWeather();
+
+  if(state.isLoggedIn) {
+    showDashboard();
+  }
+};
+
+function attemptLogin() {
+  const u = document.getElementById('username').value;
+  const p = document.getElementById('password').value;
   if(u === "ADMIN" && p === "1234") {
-    document.getElementById("loginScreen").style.display = "none";
-    document.getElementById("dashboard").style.display = "grid"; // Changed to grid
-    fetchWeather();
-    initMQTT();
+    state.isLoggedIn = true;
+    localStorage.setItem('isLoggedIn', 'true');
+    showDashboard();
   } else {
-    document.getElementById("loginMsg").innerText = "Try ADMIN / 1234";
+    document.getElementById('loginMsg').innerText = "Incorrect Credentials";
   }
 }
 
 function logout() {
   if(client) client.end(true);
-  document.getElementById("dashboard").style.display = "none";
-  document.getElementById("loginScreen").style.display = "block";
+  state.isLoggedIn = false;
+  localStorage.removeItem('isLoggedIn');
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'block';
+  document.getElementById('loginMsg').innerText = "";
 }
 
-// ----- MQTT Logic -----
-let client, lightOn=false, fanOn=false, doorOpen=false, pumpOn=false, fanSpeed=0;
-let lastMsg = Date.now();
+function showDashboard() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'grid'; // Uses grid for desktop
+  
+  // Restore Button UI from Saved State immediately
+  updateUI('light', state.light);
+  updateUI('fan', state.fan);
+  updateUI('door', state.door);
+  updateUI('pump', state.pump);
+  updateGauge(state.fanSpeed);
+  
+  initMQTT();
+}
 
+// --- Logic ---
+function toggle(device) {
+  // Update State
+  state[device] = !state[device];
+  // Save to Memory
+  localStorage.setItem('s_' + device, state[device]);
+  // Update UI
+  updateUI(device, state[device]);
+  
+  // MQTT Command
+  if(client) {
+    const payload = device + ":" + (state[device] ? (device === 'door' ? "OPEN" : "ON") : (device === 'door' ? "CLOSE" : "OFF"));
+    client.publish("home/control", payload);
+  }
+
+  // Special Logic: If turning Fan ON, ensure speed is at least low
+  if(device === 'fan' && state.fan && state.fanSpeed === 0) {
+    handleSlider(30);
+  }
+  // If turning Fan OFF, set speed visual to 0 (but keep saved speed? usually turn off)
+  if(device === 'fan' && !state.fan) {
+    handleSlider(0);
+  }
+}
+
+function updateUI(device, isOn) {
+  const btn = document.getElementById('btn' + device.charAt(0).toUpperCase() + device.slice(1));
+  if(isOn) {
+    btn.classList.add('active');
+    // Specific icon transforms
+    if(device === 'fan') btn.querySelector('.btn-icon').style.transform = "rotate(30deg)";
+    if(device === 'door') btn.querySelector('.btn-icon').style.transform = "translateX(5px)";
+  } else {
+    btn.classList.remove('active');
+    btn.querySelector('.btn-icon').style.transform = "none";
+  }
+}
+
+function handleSlider(val) {
+  const speed = parseInt(val);
+  state.fanSpeed = speed;
+  localStorage.setItem('s_speed', speed);
+  updateGauge(speed);
+  
+  if(client) client.publish("home/control", "fanspeed:" + speed);
+
+  // Auto-toggle fan button
+  if(speed > 0 && !state.fan) {
+    state.fan = true;
+    localStorage.setItem('s_fan', true);
+    updateUI('fan', true);
+  }
+}
+
+function updateGauge(val) {
+  document.getElementById('speedInput').value = val;
+  document.getElementById('gaugeText').innerText = val;
+  
+  // SVG Stroke Logic (1005 is full circumference approx)
+  const offset = 1005 - (1005 * val) / 100;
+  document.getElementById('gaugePath').style.strokeDashoffset = offset;
+  
+  let txt = "OFF";
+  if(val > 0) txt = "LOW";
+  if(val > 40) txt = "MEDIUM";
+  if(val > 80) txt = "HIGH";
+  document.getElementById('gaugeSub').innerText = txt;
+}
+
+// --- MQTT & Heartbeat (Fixed Logic) ---
 function initMQTT() {
   client = mqtt.connect("wss://21d29e3f1c8b4623a92f309b0fbe53c4.s1.eu.hivemq.cloud:8884/mqtt", {
-    username: "espuser", password: "Esp1234@@"
+    username: "espuser", password: "Esp1234@@",
+    reconnectPeriod: 1000
   });
 
-  client.on("connect", ()=>{
+  client.on("connect", () => {
     client.subscribe("home/status");
-    document.getElementById("status").style.color = "#00e676";
-    document.getElementById("status").innerText = "ONLINE";
+    document.getElementById('espStatus').innerText = "ONLINE"; // Initial Optimism
+    document.getElementById('espStatus').className = "status-badge online";
   });
 
-  client.on("message",(topic,message)=>{
-    let msg = message.toString();
-    lastMsg = Date.now();
-    document.getElementById("lastTime").innerText = new Date().toLocaleTimeString();
+  client.on("message", (topic, message) => {
+    // Heartbeat received
+    lastMsgTime = Date.now();
+    const msg = message.toString();
+    
+    // Update visual time
+    document.getElementById('lastMsgTime').innerText = new Date().toLocaleTimeString();
 
-    if(msg === "online") {
-        document.getElementById("status").innerText="ONLINE";
-        document.getElementById("status").style.color = "#00e676";
+    // Visual Status Update
+    const statusEl = document.getElementById('espStatus');
+    if(statusEl.innerText !== "ONLINE") {
+      statusEl.innerText = "ONLINE";
+      statusEl.className = "status-badge online";
     }
-    if(msg === "light:ON") setUI("lightCard", true);
-    if(msg === "light:OFF") setUI("lightCard", false);
-    if(msg === "fan:ON") setUI("fanCard", true);
-    if(msg === "fan:OFF") setUI("fanCard", false);
-    if(msg.startsWith("fanspeed:")) updateFanVisuals(parseInt(msg.split(":")[1]));
-    if(msg === "door:OPEN") setUI("doorCard", true);
-    if(msg === "door:CLOSE") setUI("doorCard", false);
-    if(msg === "pump:ON") setUI("pumpCard", true);
-    if(msg === "pump:OFF") setUI("pumpCard", false);
+
+    // Sync incoming external commands (optional, but good practice)
+    if(msg === "light:ON") { state.light = true; updateUI('light', true); localStorage.setItem('s_light', true); }
+    if(msg === "light:OFF") { state.light = false; updateUI('light', false); localStorage.setItem('s_light', false); }
+    // ... add others if needed
   });
+
+  // Watchdog Timer (Fix for "Status not working")
+  setInterval(() => {
+    const statusEl = document.getElementById('espStatus');
+    // If no message for 4000ms (4 seconds), mark offline
+    if (Date.now() - lastMsgTime > 4000 && lastMsgTime !== 0) {
+      if(statusEl.innerText !== "OFFLINE") {
+        statusEl.innerText = "OFFLINE";
+        statusEl.className = "status-badge offline";
+      }
+    }
+  }, 2000); // Check every 2 seconds
 }
 
-function setUI(id, state) {
-  let el = document.getElementById(id);
-  if(id === "lightCard") lightOn = state;
-  if(id === "fanCard") fanOn = state;
-  if(id === "doorCard") doorOpen = state;
-  if(id === "pumpCard") pumpOn = state;
-  
-  if(state) el.classList.add("active");
-  else el.classList.remove("active");
+// --- Helpers ---
+function updateTime() {
+  const now = new Date();
+  document.getElementById('clock').innerHTML = now.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', hour12:true, timeZone:'Asia/Kathmandu'});
+  document.getElementById('date').innerText = now.toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', timeZone:'Asia/Kathmandu'});
 }
 
-function toggleLight(){
-  lightOn = !lightOn;
-  setUI("lightCard", lightOn);
-  if(client) client.publish("home/control","light:"+(lightOn?"ON":"OFF"));
+async function fetchWeather() {
+  try {
+    const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=27.7172&longitude=85.3240&current=temperature_2m,weathercode&timezone=Asia%2FKathmandu');
+    const d = await r.json();
+    document.getElementById('wTemp').innerText = Math.round(d.current.temperature_2m) + "°";
+    
+    const codes = {0:'Clear', 1:'Fair', 2:'Cloudy', 3:'Overcast', 45:'Fog', 95:'Storm'};
+    const icons = {0:'☀️', 1:'🌤️', 2:'⛅', 3:'☁️', 45:'🌫️', 95:'⛈️'};
+    const code = d.current.weathercode;
+    
+    document.getElementById('wDesc').innerText = codes[code] || "Rainy";
+    document.getElementById('wIcon').innerText = icons[code] || "🌧️";
+  } catch(e) {}
 }
 
-function toggleFanPower(){
-  fanOn = !fanOn;
-  setUI("fanCard", fanOn);
-  if(client) client.publish("home/control","fan:"+(fanOn?"ON":"OFF"));
-  // If turning on, set speed to default if 0
-  if(fanOn && fanSpeed === 0) updateFanSpeed(50);
-  if(!fanOn) updateFanSpeed(0);
-}
-
-function toggleDoor(){
-  doorOpen = !doorOpen;
-  setUI("doorCard", doorOpen);
-  if(client) client.publish("home/control","door:"+(doorOpen?"OPEN":"CLOSE"));
-}
-
-function togglePump(){
-  pumpOn = !pumpOn;
-  setUI("pumpCard", pumpOn);
-  if(client) client.publish("home/control","pump:"+(pumpOn?"ON":"OFF"));
-}
-
-function updateFanSpeed(val) {
-  // Logic to send to MQTT
-  fanSpeed = parseInt(val);
-  updateFanVisuals(fanSpeed);
-  if(client) client.publish("home/control","fanspeed:"+fanSpeed);
-}
-
-function updateFanVisuals(speed) {
-  fanSpeed = speed;
-  document.getElementById("speedSlider").value = speed;
-  document.getElementById("gaugeValue").innerText = speed;
-  
-  // Update Ring Stroke (SVG stroke-dashoffset)
-  // Max offset 1005 (empty), 0 (full)
-  let offset = 1005 - (1005 * speed) / 100;
-  document.getElementById("gaugeRing").style.strokeDashoffset = offset;
-
-  // Text status
-  let txt = "OFF";
-  if(speed > 0) txt = "LOW";
-  if(speed > 40) txt = "MEDIUM";
-  if(speed > 80) txt = "HIGH";
-  if(speed == 0) txt = "OFF";
-  document.getElementById("gaugeSubtext").innerText = txt;
-
-  // Auto-activate fan button if speed > 0
-  if(speed > 0 && !fanOn) { fanOn=true; setUI("fanCard", true); }
-  if(speed == 0 && fanOn) { fanOn=false; setUI("fanCard", false); }
-}
-
-// Allow Enter to login
+// Enter key login
 document.getElementById("password").addEventListener("keyup", function(e) {
-  if (e.key === "Enter") login();
+  if (e.key === "Enter") attemptLogin();
 });
 </script>
 
