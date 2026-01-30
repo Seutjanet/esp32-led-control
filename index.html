@@ -1,233 +1,133 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Smart Home Control</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Home Control</title>
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 
-  <style>
-    body {
-      margin:0;
-      font-family:'Segoe UI',sans-serif;
-      background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      height:100vh;
-    }
+<style>
+body {
+  margin:0;
+  font-family: 'Segoe UI', sans-serif;
+  background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+  color:white;
+  text-align:center;
+}
 
-    .panel {
-      background:rgba(255,255,255,0.08);
-      backdrop-filter:blur(15px);
-      border-radius:25px;
-      padding:25px;
-      width:95%;
-      max-width:950px;
-      box-shadow:0 0 40px rgba(0,0,0,0.4);
-    }
+h1 { margin-top:20px; }
 
-    h1 { text-align:center; color:white; }
+.status {
+  margin:10px;
+  padding:8px 16px;
+  border-radius:20px;
+  display:inline-block;
+  font-weight:bold;
+}
 
-    .statusbar {
-      text-align:center;
-      margin-bottom:20px;
-      color:white;
-      font-size:14px;
-    }
+.online { background:#00c853; }
+.offline { background:#d50000; }
 
-    .dot {
-      height:10px;
-      width:10px;
-      border-radius:50%;
-      display:inline-block;
-      margin-right:5px;
-      background:red;
-    }
+.container {
+  display:flex;
+  justify-content:center;
+  margin-top:40px;
+}
 
-    .grid {
-      display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
-      gap:20px;
-    }
+.card {
+  background:rgba(255,255,255,0.08);
+  backdrop-filter: blur(10px);
+  border-radius:20px;
+  padding:30px;
+  width:200px;
+  transition:0.3s;
+  box-shadow:0 10px 30px rgba(0,0,0,0.4);
+}
 
-    .device {
-      background:#3b0000;
-      border-radius:20px;
-      padding:20px;
-      text-align:center;
-      color:white;
-      cursor:pointer;
-      transition:.3s;
-      box-shadow:0 0 15px rgba(0,0,0,0.5);
-      position:relative;
-    }
+.card.active { background:#00c853; }
+.card.inactive { background:#b71c1c; }
 
-    .device.on {
-      background:#003b00;
-      box-shadow:0 0 20px #00ff88;
-    }
+.icon {
+  font-size:60px;
+  margin-bottom:10px;
+  transition:0.3s;
+}
 
-    .icon { font-size:55px; margin-bottom:10px; display:inline-block; }
-
-    .tv {
-      width:70px; height:45px;
-      background:black;
-      border-radius:6px;
-      margin:auto;
-      border:4px solid #555;
-    }
-
-    .tv.on { background:white; box-shadow:0 0 15px white; }
-
-    .spin { animation:spin .6s linear 3; }
-
-    @keyframes spin {
-      from { transform:rotate(0deg); }
-      to { transform:rotate(360deg); }
-    }
-
-    .ack { font-size:12px; margin-top:8px; opacity:.8; }
-
-    .fan-speed button {
-      margin: 2px;
-      padding: 3px 6px;
-      border-radius: 5px;
-      border:none;
-      cursor:pointer;
-      background:#555;
-      color:white;
-    }
-  </style>
+button {
+  padding:10px 20px;
+  border:none;
+  border-radius:20px;
+  font-size:16px;
+  cursor:pointer;
+}
+</style>
 </head>
 
 <body>
-<div class="panel">
-  <h1>🏠 Smart Home Control</h1>
 
-  <div class="statusbar">
-    <span id="dot" class="dot"></span>
-    ESP32 Status: <span id="espStatus">Offline</span>
-  </div>
+<h1>🏠 Smart Home</h1>
+<div id="status" class="status offline">ESP OFFLINE</div>
 
-  <div class="grid">
-
-    <div class="device" id="light" onclick="toggleDevice('light')">
-      <div class="icon">💡</div>
-      Light
-      <div class="ack" id="ack_light">Waiting...</div>
-    </div>
-
-    <div class="device" id="fan" onclick="toggleFan()">
-      <div class="icon" id="fanIcon">🌀</div>
-      Fan
-      <div class="fan-speed" id="fanSpeed" style="display:none; margin-top:8px;">
-        Speed:
-        <button onclick="setFanSpeed(1);event.stopPropagation();">1</button>
-        <button onclick="setFanSpeed(2);event.stopPropagation();">2</button>
-        <button onclick="setFanSpeed(3);event.stopPropagation();">3</button>
-      </div>
-      <div class="ack" id="ack_fan">Waiting...</div>
-    </div>
-
-    <div class="device" id="tvBox" onclick="toggleDevice('tv')">
-      <div class="tv" id="tv"></div>
-      TV
-      <div class="ack" id="ack_tv">Waiting...</div>
-    </div>
-
-    <div class="device" id="pump" onclick="toggleDevice('pump')">
-      <div class="icon">🚰</div>
-      Pump
-      <div class="ack" id="ack_pump">Waiting...</div>
-    </div>
-
-    <div class="device" id="gate" onclick="toggleDevice('gate')">
-      <div class="icon">🚪</div>
-      Gate
-      <div class="ack" id="ack_gate">Waiting...</div>
-    </div>
-
+<div class="container">
+  <div id="lightCard" class="card inactive">
+    <div id="bulbIcon" class="icon">💡</div>
+    <h2>Light</h2>
+    <button onclick="toggleLight()">Toggle</button>
   </div>
 </div>
 
 <script>
-const broker = "wss://YOUR_HIVEMQ_URL:8884/mqtt";
-const options = { username:"YOUR_MQTT_USERNAME", password:"YOUR_MQTT_PASSWORD" };
-const client = mqtt.connect(broker, options);
+const client = mqtt.connect("wss://21d29e3f1c8b4623a92f309b0fbe53c4.s1.eu.hivemq.cloud:8884/mqtt", {
+  username: "espuser",
+  password: "Esp1234@@"
+});
 
+let lightOn = false;
 let lastSeen = Date.now();
-const TIMEOUT = 10000;
-
-function setOnline(status){
-  document.getElementById("dot").style.background = status ? "lime" : "red";
-  document.getElementById("espStatus").innerText = status ? "Online" : "Offline";
-}
 
 client.on("connect", () => {
   client.subscribe("home/status");
 });
 
 client.on("message", (topic, message) => {
-  const msg = message.toString();
+  let msg = message.toString();
 
-  if(msg === "online"){
+  if(msg === "online") {
     lastSeen = Date.now();
-    setOnline(true);
-    return;
   }
 
-  const parts = msg.split(":");
-  const device = parts[0];
-  const state = parts[1];
-
-  const el = device==="tv" ? document.getElementById("tvBox") : document.getElementById(device);
-  if(!el) return;
-
-  if(state==="ON"){
-    el.classList.add("on");
-    document.getElementById("ack_"+device).innerText="Done ✅";
-    if(device==="fan"){
-      fanIcon.classList.add("spin");
-      setTimeout(()=>fanIcon.classList.remove("spin"),1800);
-    }
-    if(device==="tv") tv.classList.add("on");
-  } else {
-    el.classList.remove("on");
-    document.getElementById("ack_"+device).innerText="Done ✅";
-    if(device==="tv") tv.classList.remove("on");
-  }
+  if(msg === "light:ON") setLightUI(true);
+  if(msg === "light:OFF") setLightUI(false);
 });
 
-setInterval(() => {
-  if (Date.now() - lastSeen > TIMEOUT) setOnline(false);
-}, 2000);
+setInterval(()=>{
+  if(Date.now() - lastSeen > 7000){
+    document.getElementById("status").className="status offline";
+    document.getElementById("status").innerText="ESP OFFLINE";
+  } else {
+    document.getElementById("status").className="status online";
+    document.getElementById("status").innerText="ESP ONLINE";
+  }
+},1000);
 
-function toggleDevice(device){
-  const el = device==="tv" ? document.getElementById("tvBox") : document.getElementById(device);
-  const newState = el.classList.contains("on") ? "OFF" : "ON";
-  client.publish("home/control", device+":"+newState);
-  document.getElementById("ack_"+device).innerText="Sending...";
+function toggleLight(){
+  lightOn = !lightOn;
+  client.publish("home/control", "light:" + (lightOn?"ON":"OFF"));
 }
 
-let fanOn=false, fanSpeed=1;
+function setLightUI(state){
+  lightOn = state;
+  let card = document.getElementById("lightCard");
+  let icon = document.getElementById("bulbIcon");
 
-function toggleFan(){
-  fanOn=!fanOn;
-  document.getElementById("fan").classList.toggle("on",fanOn);
-  document.getElementById("fanSpeed").style.display = fanOn ? "block":"none";
-  sendFanCommand();
-}
-
-function setFanSpeed(speed){
-  fanSpeed=speed;
-  sendFanCommand();
-}
-
-function sendFanCommand(){
-  const state=fanOn?"ON":"OFF";
-  client.publish("home/control",`fan:${state}:${fanSpeed}`);
-  document.getElementById("ack_fan").innerText="Sending...";
+  if(state){
+    card.className="card active";
+    icon.style.filter="drop-shadow(0 0 20px yellow)";
+  } else {
+    card.className="card inactive";
+    icon.style.filter="none";
+  }
 }
 </script>
+
 </body>
 </html>
